@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ItemRequestServiceImpl implements ItemRequestService {
+public class ItemRequestServiceImpl implements ItemRequestService{
     private final UserStorage userStorage;
     private final ItemRequestStorage itemRequestStorage;
     private final ItemStorage itemStorage;
