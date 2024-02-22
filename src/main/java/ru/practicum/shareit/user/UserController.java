@@ -28,17 +28,17 @@ public class UserController {
     }
 
     @GetMapping
-    public Collection<UserDto> getAllUsers(){
+    public Collection<UserDto> getAllUsers() {
         return userService.getAllUsers();
     }
 
     @GetMapping("/{id}")
-    public UserDto getUserById(@PathVariable Long id){
+    public UserDto getUserById(@PathVariable Long id) {
         return userService.getUserById(id);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteUser(@PathVariable Long id){
+    public void deleteUser(@PathVariable Long id) {
         userService.removeUser(id);
     }
 }
