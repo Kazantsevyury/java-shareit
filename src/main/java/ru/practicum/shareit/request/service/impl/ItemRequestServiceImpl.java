@@ -3,14 +3,11 @@ package ru.practicum.shareit.request.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.booking.dao.BookingStorage;
-import ru.practicum.shareit.item.dao.ItemStorage;
 import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.request.ItemRequestMapper;
 import ru.practicum.shareit.request.dao.ItemRequestStorage;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.service.ItemRequestService;
-import ru.practicum.shareit.user.dao.UserStorage;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,11 +16,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ItemRequestServiceImpl implements ItemRequestService {
-    private final UserStorage userStorage;
+public class ItemRequestServiceImpl implements ItemRequestService{
+
     private final ItemRequestStorage itemRequestStorage;
-    private final ItemStorage itemStorage;
-    private final BookingStorage bookingStorage;
     private final ItemRequestMapper itemRequestMapper;
 
     @Override
