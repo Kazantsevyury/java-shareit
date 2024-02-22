@@ -1,7 +1,6 @@
 package ru.practicum.shareit.request.service;
 
 import ru.practicum.shareit.request.dto.ItemRequestDto;
-
 import java.util.Collection;
 
 public interface ItemRequestService {
@@ -16,3 +15,4 @@ public interface ItemRequestService {
 
     void removeItemRequest(long itemRequestId);
 }
+
