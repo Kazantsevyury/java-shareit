@@ -5,9 +5,15 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import org.springframework.validation.Validator;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.user.service.UserService;
 
 @Component
 public class ItemDtoValidator implements Validator {
+    private final UserService userService;
+
+    public ItemDtoValidator(UserService userService) {
+        this.userService = userService;
+    }
 
     @Override
     public boolean supports(Class<?> clazz) {
@@ -24,5 +30,10 @@ public class ItemDtoValidator implements Validator {
         if (itemDto.getAvailable() == null) {
             errors.rejectValue("available", "available.null", "Необходимо указать доступность предмета.");
         }
+
+            // if (!userService.verifyUserExists(itemDto.getOwner())) {
+         //   errors.rejectValue("owner", "owner.notfound", "Пользователь не найден.");
+      //  }
     }
 }
+

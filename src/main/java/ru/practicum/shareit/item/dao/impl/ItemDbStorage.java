@@ -41,4 +41,5 @@ public class ItemDbStorage implements ItemStorage {
     public Collection<Item> searchAvailableItemsByText(String text) {
         throw new UnsupportedOperationException("Операция пока не поддерживается.");
     }
+
 }

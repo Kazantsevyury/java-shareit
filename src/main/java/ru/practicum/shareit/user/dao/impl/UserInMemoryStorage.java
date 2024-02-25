@@ -7,6 +7,7 @@ import ru.practicum.shareit.user.model.User;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Repository
 public class UserInMemoryStorage implements UserStorage {
@@ -38,5 +39,21 @@ public class UserInMemoryStorage implements UserStorage {
     @Override
     public User findById(Long id) {
         return users.get(id);
+    }
+
+    @Override
+    public boolean existsById(Long userId) {
+        if (users.containsKey(userId)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public Optional<User> findByEmail(String email) {
+        return users.values().stream()
+                .filter(user -> user.getEmail().equals(email))
+                .findFirst();
     }
 }

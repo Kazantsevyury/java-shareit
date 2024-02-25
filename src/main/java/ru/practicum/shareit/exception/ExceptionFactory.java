@@ -20,4 +20,7 @@ public class ExceptionFactory {
         return new EntityAlreadyExistsException(message);
     }
 
+    public static UserNotFoundException userNotFoundException(String message) {
+        return new UserNotFoundException(message);
+    }
 }

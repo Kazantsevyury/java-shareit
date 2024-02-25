@@ -2,14 +2,20 @@ package ru.practicum.shareit.item.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.exception.ExceptionFactory;
 import ru.practicum.shareit.exception.exceptions.EntityNotFoundException;
+import ru.practicum.shareit.item.ItemDtoValidator;
 import ru.practicum.shareit.item.ItemMapper;
+import ru.practicum.shareit.item.ItemValidator;
 import ru.practicum.shareit.item.dao.ItemStorage;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.ItemService;
+import ru.practicum.shareit.user.UserValidator;
+import ru.practicum.shareit.user.service.UserService;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,19 +28,29 @@ import java.util.stream.Collectors;
 public class ItemServiceImpl implements ItemService {
     private final ItemStorage itemStorage;
     private final ItemMapper itemMapper;
+    private final ItemDtoValidator itemDtoValidator;
+    private final UserService userService;
+    private final ItemValidator itemValidator;
+    private final UserValidator userValidator;
 
     @Override
-    public Item addItem(Item item) {
-        final Item addedItem = itemStorage.add(item);
-        log.info("Adding new item: {}", addedItem);
-        return itemStorage.findById(item.getId());
+    public ItemDto addItem(ItemDto itemDto, Long userId) {
+        userValidator.verifyUserExists(userId);
+
+        Item item = itemMapper.itemDtoToItem(itemDto);
+
+        item.setOwner(userId);
+        itemValidator.validate(item);
+        Item savedItem = itemStorage.add(item);
+        return itemMapper.itemToItemDto(savedItem);
     }
 
     @Override
-    public ItemDto updateItem(ItemDto itemDto) {
-        Item existingItem = itemStorage.findById(itemDto.getId());
-        if (existingItem == null) {
-            throw ExceptionFactory.entityNotFound("Предмет", itemDto.getId());
+    public ItemDto updateItem(ItemDto itemDto, Long userId, Long itemId) {
+        userValidator.verifyUserExists(userId);
+        Item existingItem = itemStorage.findById(itemId);
+        if (existingItem == null || !existingItem.getOwner().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Нет доступа к этому предмету или предмет не найден");
         }
 
         boolean updated = false;
@@ -51,7 +67,6 @@ public class ItemServiceImpl implements ItemService {
             updated = true;
         }
 
-
         if (!updated) {
             throw ExceptionFactory.invalidData("Нет данных для обновления");
         }
@@ -59,6 +74,7 @@ public class ItemServiceImpl implements ItemService {
         itemStorage.update(existingItem);
         return itemMapper.itemToItemDto(existingItem);
     }
+
 
     @Override
     public Collection<Item> getAllItems() {
@@ -96,7 +112,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> searchAvailableItems(String text) {
-        return itemStorage.searchAvailableItemsByText(text).stream() // предполагается, что этот метод существует в itemStorage
+        return itemStorage.searchAvailableItemsByText(text).stream()
                 .map(itemMapper::itemToItemDto)
                 .collect(Collectors.toList());
     }
