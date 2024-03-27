@@ -44,7 +44,7 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public ItemDto addItem(Long userId, ItemCreateDto itemDto) {
         User owner = userStorage.findById(userId)
-                .orElseThrow(() -> ExceptionFactory.userNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> ExceptionFactory.userNotFoundException("User не найден: " + userId));
         Item item = itemMapper.fromItemCreateDto(itemDto);
         item.setOwner(owner);
         Item savedItem = itemStorage.save(item);
@@ -58,7 +58,7 @@ public class ItemServiceImpl implements ItemService {
                 .orElseThrow(() -> ExceptionFactory.entityNotFound("Item", itemId));
 
         if (!item.getOwner().getId().equals(userId)) {
-            throw ExceptionFactory.accessDenied("User is not the owner of the item.");
+            throw ExceptionFactory.accessDenied("User не является хозяином. ");
         }
         itemMapper.updateItemFromItemUpdateDto(itemUpdateDto, item);
         Item updatedItem = itemStorage.save(item);
@@ -105,15 +105,14 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public CommentDto addCommentToItem(Long userId, Long itemId, CommentCreateDto commentDto) {
         if (!bookingStorage.hasUserRentedItem(userId, itemId)) {
-            throw new AccessDeniedException("User did not rent the item or rental period has not ended.");
+            throw new AccessDeniedException("Пользователь не арендовал предмет.");
         }
 
         User author = userStorage.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("Userне найден, с  id: " + userId));
         Item item = itemStorage.findById(itemId)
-                .orElseThrow(() -> new EntityNotFoundException("Item not found with id: " + itemId));
+                .orElseThrow(() -> new EntityNotFoundException("Item не найдено, с id: " + itemId));
 
-        // Создание и сохранение комментария
         Comment comment = new Comment();
         comment.setText(commentDto.getText());
         comment.setItem(item);

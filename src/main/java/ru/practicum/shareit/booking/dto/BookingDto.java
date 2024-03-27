@@ -15,17 +15,17 @@ import java.time.LocalDateTime;
 public class BookingDto {
     private Long id;
 
-    @FutureOrPresent(message = "Start date must be in the future or present")
-    private LocalDateTime startDate;
+    @FutureOrPresent(message = "Дата начала должна быть в будущем или настоящем")
+    private LocalDateTime start;
 
-    @FutureOrPresent(message = "End date must be in the future or present")
-    private LocalDateTime endDate;
+    @FutureOrPresent(message = "Дата окончания должна быть в будущем или настоящем")
+    private LocalDateTime end;
 
     private BookingStatus status;
 
-    @NotNull(message = "Item ID cannot be null")
+    @NotNull(message = "ID предмета не может быть пустым")
     private Long itemId;
 
-    @NotNull(message = "Booker ID cannot be null")
+    @NotNull(message = "ID арендатора не может быть пустым")
     private Long bookerId;
 }

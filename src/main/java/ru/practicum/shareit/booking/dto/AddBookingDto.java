@@ -12,11 +12,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AddBookingDto {
-
     @FutureOrPresent(message = "Start date must be in the future or present")
-    private LocalDateTime startDate;
+    private LocalDateTime start;
     @FutureOrPresent(message = "End date must be in the future or present")
-    private LocalDateTime endDate;
-    @NotNull(message = "Item ID cannot be null")
+    private LocalDateTime end;
     private Long itemId;
 }

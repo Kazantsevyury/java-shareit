@@ -34,8 +34,8 @@ public class UserServiceImpl implements UserService {
             user = userStorage.save(user);
             return UserMapper.INSTANCE.toUserDto(user);
         } catch (EntityAlreadyExistsException e) {
-            incrementIdCounter(); // Увеличиваем счётчик `id`, не создавая пользователя
-            throw e; // Повторно выбрасываем исключение, чтобы не нарушить логику обработки ошибок
+            incrementIdCounter();
+            throw e;
         }
     }
 

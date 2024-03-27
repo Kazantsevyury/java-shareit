@@ -5,12 +5,15 @@ import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingMapper;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.enums.BookingState;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.booking.storage.BookingStorage;
 import ru.practicum.shareit.exception.ExceptionFactory;
+import ru.practicum.shareit.exception.exceptions.EntityNotFoundException;
+import ru.practicum.shareit.exception.exceptions.ItemNotFoundException;
 import ru.practicum.shareit.item.storage.ItemStorage;
 import ru.practicum.shareit.user.UserStorage;
 
@@ -32,65 +35,79 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingDto addBooking(Long userId, AddBookingDto bookingDto) {
-        if (bookingDto.getStartDate() == null || bookingDto.getEndDate() == null) {
-            throw new IllegalArgumentException("Необходимо указать дату начала и окончания бронирования.");
-        }
-
-        if (bookingDto.getEndDate().isBefore(bookingDto.getStartDate())) {
-            throw new IllegalArgumentException("Дата окончания бронирования должна быть позже даты начала.");
-        }
-
+    public BookingResponseDto addBooking(Long userId, AddBookingDto bookingDto) {
         var user = userStorage.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Пользователь с указанным ID не найден."));
-        var item = itemStorage.findById(bookingDto.getItemId())
-                .orElseThrow(() -> new IllegalArgumentException("Вещь с указанным ID не найдена."));
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден по id: " + userId));
 
-        if (!item.getAvailable() || item.getOwner().getId().equals(userId)) {
-            throw new IllegalArgumentException("Вещь недоступна для бронирования или владелец не может бронировать собственную вещь.");
+        var item = itemStorage.findById(bookingDto.getItemId())
+                .orElseThrow(() -> new ItemNotFoundException("Предмет не найден по id: " + bookingDto.getItemId()));
+
+        if (!item.getAvailable()) {
+            throw new IllegalArgumentException("Предмет с id: " + bookingDto.getItemId() + " недоступен для бронирования.");
+        }
+
+        if (item.getOwner().getId().equals(userId)) {
+            throw new IllegalArgumentException("Владелец не может бронировать свой предмет.");
+        }
+
+        if (bookingDto.getStart() == null || bookingDto.getEnd() == null) {
+            throw new IllegalArgumentException("Дата начала и окончания не должны быть пустыми.");
+        }
+
+        if (bookingDto.getStart().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Дата начала не должна быть в прошлом.");
+        }
+
+        if (bookingDto.getStart().isEqual(bookingDto.getEnd())) {
+            throw new IllegalArgumentException("Дата начала и окончания не могут совпадать.");
+        }
+
+        if (bookingDto.getStart().isAfter(bookingDto.getEnd())) {
+            throw new IllegalArgumentException("Дата начала должна быть раньше даты окончания.");
         }
 
         Booking booking = new Booking();
-        booking.setStartDate(bookingDto.getStartDate());
-        booking.setEndDate(bookingDto.getEndDate());
+        booking.setStart(bookingDto.getStart());
+        booking.setEnd(bookingDto.getEnd());
         booking.setItem(item);
         booking.setBooker(user);
         booking.setStatus(BookingStatus.WAITING);
 
         Booking savedBooking = bookingStorage.save(booking);
-        return bookingMapper.toBookingDto(savedBooking);
-    }
 
+        return bookingMapper.toBookingResponseDto(savedBooking);
+    }
 
     @Override
     @Transactional
-    public BookingDto acknowledgeBooking(Long userId, Long bookingId, Boolean approved) {
+    public BookingResponseDto acknowledgeBooking(Long userId, Long bookingId, Boolean approved) {
         Booking booking = bookingStorage.findById(bookingId)
-                .orElseThrow(() -> ExceptionFactory.entityNotFound("Бронирование", bookingId));
+                .orElseThrow(() -> new RuntimeException("Бронирование не найдено по id: " + bookingId));
 
         if (!booking.getItem().getOwner().getId().equals(userId)) {
-            throw ExceptionFactory.accessDenied("Только владелец вещи может подтвердить или отклонить бронирование.");
+            throw new IllegalArgumentException("Только владелец предмета может подтвердить или отклонить бронирование.");
         }
 
         booking.setStatus(approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
         Booking updatedBooking = bookingStorage.save(booking);
-        return bookingMapper.toBookingDto(updatedBooking);
+
+        return bookingMapper.toBookingResponseDto(updatedBooking);
     }
 
     @Override
-    public BookingDto getBookingById(Long userId, Long bookingId) {
+    public BookingResponseDto getBookingById(Long userId, Long bookingId) {
         Booking booking = bookingStorage.findById(bookingId)
-                .orElseThrow(() -> ExceptionFactory.entityNotFound("Бронирование", bookingId));
+                .orElseThrow(() -> new RuntimeException("Бронирование не найдено по id: " + bookingId));
 
         if (!booking.getBooker().getId().equals(userId) && !booking.getItem().getOwner().getId().equals(userId)) {
-            throw ExceptionFactory.accessDenied("Пользователь не является ни арендатором, ни владельцем вещи.");
+            throw new IllegalArgumentException("Пользователь не является ни арендатором, ни владельцем предмета.");
         }
 
-        return bookingMapper.toBookingDto(booking);
+        return bookingMapper.toBookingResponseDto(booking);
     }
 
     @Override
-    public List<BookingDto> getAllBookingsFromUser(Long userId, BookingState state) {
+        public List<BookingResponseDto> getAllBookingsFromUser(Long userId, BookingState state) {
         userStorage.findById(userId).orElseThrow(() -> ExceptionFactory.userNotFoundException("Пользователь с ID " + userId + " не найден"));
 
         LocalDateTime now = LocalDateTime.now();
@@ -101,13 +118,13 @@ public class BookingServiceImpl implements BookingService {
                 bookings = bookingStorage.findAllByBookerId(userId);
                 break;
             case PAST:
-                bookings = bookingStorage.findAllByBookerIdAndEndDateBefore(userId, now);
+                bookings = bookingStorage.findAllByBookerIdAndEndBefore(userId, now);
                 break;
             case FUTURE:
-                bookings = bookingStorage.findAllByBookerIdAndStartDateAfter(userId, now);
+                bookings = bookingStorage.findAllByBookerIdAndStartAfter(userId, now);
                 break;
             case CURRENT:
-                bookings = bookingStorage.findAllByBookerIdAndStartDateBeforeAndEndDateAfter(userId, now, now);
+                bookings = bookingStorage.findAllByBookerIdAndStartBeforeAndEndAfter(userId, now, now);
                 break;
             case WAITING:
             case REJECTED:
@@ -116,13 +133,13 @@ public class BookingServiceImpl implements BookingService {
             default:
                 throw new IllegalArgumentException("Неизвестное состояние: " + state);
         }
-        return bookings.stream()
-                .map(bookingMapper::toBookingDto)
-                .collect(Collectors.toList());
+            return bookings.stream()
+                    .map(booking -> bookingMapper.toBookingResponseDto(booking))
+                    .collect(Collectors.toList());
     }
 
     @Override
-    public List<BookingDto> getAllOwnerBookings(Long userId, BookingState state) {
+        public List<BookingResponseDto> getAllOwnerBookings(Long userId, BookingState state) {
         userStorage.findById(userId).orElseThrow(() -> ExceptionFactory.userNotFoundException("Пользователь с ID " + userId + " не найден"));
 
         LocalDateTime now = LocalDateTime.now();
@@ -133,13 +150,13 @@ public class BookingServiceImpl implements BookingService {
                 bookings = bookingStorage.findAllByItem_Owner_Id(userId, Pageable.unpaged());
                 break;
             case PAST:
-                bookings = bookingStorage.findAllByItem_Owner_IdAndEndDateBefore(userId, now, Pageable.unpaged());
+                bookings = bookingStorage.findAllByItem_Owner_IdAndEndBefore(userId, now, Pageable.unpaged());
                 break;
             case FUTURE:
-                bookings = bookingStorage.findAllByItem_Owner_IdAndStartDateAfter(userId, now);
+                bookings = bookingStorage.findAllByItem_Owner_IdAndStartAfter(userId, now);
                 break;
             case CURRENT:
-                bookings = bookingStorage.findAllByItem_Owner_IdAndStartDateBeforeAndEndDateAfter(userId, now, now);
+                bookings = bookingStorage.findAllByItem_Owner_IdAndStartBeforeAndEndAfter(userId, now, now);
                 break;
             case WAITING:
             case REJECTED:
@@ -149,8 +166,8 @@ public class BookingServiceImpl implements BookingService {
                 throw new IllegalArgumentException("Неизвестное состояние: " + state);
         }
 
-        return bookings.stream()
-                .map(bookingMapper::toBookingDto)
-                .collect(Collectors.toList());
+            return bookings.stream()
+                    .map(booking -> bookingMapper.toBookingResponseDto(booking))
+                    .collect(Collectors.toList());
     }
 }

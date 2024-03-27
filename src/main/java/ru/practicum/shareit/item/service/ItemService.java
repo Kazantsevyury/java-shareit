@@ -23,6 +23,6 @@ public interface ItemService {
 
     CommentDto addCommentToItem(Long userId, Long itemId, CommentCreateDto commentDto);
 
-    void removeItem(Long itemId); // Добавлен метод для удаления предмета
+    void removeItem(Long itemId);
 }
 
