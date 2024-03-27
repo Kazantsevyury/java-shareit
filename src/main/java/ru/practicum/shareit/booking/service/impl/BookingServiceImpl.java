@@ -1,75 +1,156 @@
 package ru.practicum.shareit.booking.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingMapper;
-import ru.practicum.shareit.booking.dao.BookingStorage;
+import ru.practicum.shareit.booking.dto.AddBookingDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.enums.BookingState;
+import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.booking.storage.BookingStorage;
 import ru.practicum.shareit.exception.ExceptionFactory;
+import ru.practicum.shareit.item.storage.ItemStorage;
+import ru.practicum.shareit.user.UserStorage;
 
-import java.util.Collection;
+import javax.transaction.Transactional;
+import org.springframework.data.domain.Pageable;
+import java.time.LocalDateTime;
+
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class BookingServiceImpl implements BookingService {
 
     private final BookingStorage bookingStorage;
+    private final UserStorage userStorage;
+    private final ItemStorage itemStorage;
     private final BookingMapper bookingMapper;
 
     @Override
-    public BookingDto addBooking(BookingDto bookingDto) {
-        final Booking booking = bookingMapper.bookingDtoToBooking(bookingDto);
-        final Booking addedBooking = bookingStorage.add(booking);
-        log.info("Добавление нового бронирования: {}", addedBooking);
-        Booking resultBooking = bookingStorage.findById(addedBooking.getId());
-        if (resultBooking == null) {
-            throw ExceptionFactory.entityNotFound("Бронирование", addedBooking.getId());
+    @Transactional
+    public BookingDto addBooking(Long userId, AddBookingDto bookingDto) {
+        if (bookingDto.getStartDate() == null || bookingDto.getEndDate() == null) {
+            throw new IllegalArgumentException("Необходимо указать дату начала и окончания бронирования.");
         }
-        return bookingMapper.bookingToBookingDto(resultBooking);
+
+        if (bookingDto.getEndDate().isBefore(bookingDto.getStartDate())) {
+            throw new IllegalArgumentException("Дата окончания бронирования должна быть позже даты начала.");
+        }
+
+        var user = userStorage.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Пользователь с указанным ID не найден."));
+        var item = itemStorage.findById(bookingDto.getItemId())
+                .orElseThrow(() -> new IllegalArgumentException("Вещь с указанным ID не найдена."));
+
+        if (!item.getAvailable() || item.getOwner().getId().equals(userId)) {
+            throw new IllegalArgumentException("Вещь недоступна для бронирования или владелец не может бронировать собственную вещь.");
+        }
+
+        Booking booking = new Booking();
+        booking.setStartDate(bookingDto.getStartDate());
+        booking.setEndDate(bookingDto.getEndDate());
+        booking.setItem(item);
+        booking.setBooker(user);
+        booking.setStatus(BookingStatus.WAITING);
+
+        Booking savedBooking = bookingStorage.save(booking);
+        return bookingMapper.toBookingDto(savedBooking);
+    }
+
+
+    @Override
+    @Transactional
+    public BookingDto acknowledgeBooking(Long userId, Long bookingId, Boolean approved) {
+        Booking booking = bookingStorage.findById(bookingId)
+                .orElseThrow(() -> ExceptionFactory.entityNotFound("Бронирование", bookingId));
+
+        if (!booking.getItem().getOwner().getId().equals(userId)) {
+            throw ExceptionFactory.accessDenied("Только владелец вещи может подтвердить или отклонить бронирование.");
+        }
+
+        booking.setStatus(approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
+        Booking updatedBooking = bookingStorage.save(booking);
+        return bookingMapper.toBookingDto(updatedBooking);
     }
 
     @Override
-    public BookingDto updateBooking(BookingDto bookingDto) {
-        Booking booking = bookingStorage.findById(bookingDto.getId());
-        if (booking == null) {
-            throw ExceptionFactory.entityNotFound("Бронирование", bookingDto.getId());
+    public BookingDto getBookingById(Long userId, Long bookingId) {
+        Booking booking = bookingStorage.findById(bookingId)
+                .orElseThrow(() -> ExceptionFactory.entityNotFound("Бронирование", bookingId));
+
+        if (!booking.getBooker().getId().equals(userId) && !booking.getItem().getOwner().getId().equals(userId)) {
+            throw ExceptionFactory.accessDenied("Пользователь не является ни арендатором, ни владельцем вещи.");
         }
-        final Booking updatedBooking = bookingMapper.bookingDtoToBooking(bookingDto);
-        bookingStorage.update(updatedBooking);
-        log.info("Обновление бронирования с id {}: {}", bookingDto.getId(), updatedBooking);
-        return bookingMapper.bookingToBookingDto(updatedBooking);
+
+        return bookingMapper.toBookingDto(booking);
     }
 
     @Override
-    public Collection<BookingDto> getAllBookings() {
-        log.info("Получение списка всех бронирований.");
-        return bookingStorage.findAll().stream()
-                .map(bookingMapper::bookingToBookingDto)
+    public List<BookingDto> getAllBookingsFromUser(Long userId, BookingState state) {
+        userStorage.findById(userId).orElseThrow(() -> ExceptionFactory.userNotFoundException("Пользователь с ID " + userId + " не найден"));
+
+        LocalDateTime now = LocalDateTime.now();
+        List<Booking> bookings;
+
+        switch (state) {
+            case ALL:
+                bookings = bookingStorage.findAllByBookerId(userId);
+                break;
+            case PAST:
+                bookings = bookingStorage.findAllByBookerIdAndEndDateBefore(userId, now);
+                break;
+            case FUTURE:
+                bookings = bookingStorage.findAllByBookerIdAndStartDateAfter(userId, now);
+                break;
+            case CURRENT:
+                bookings = bookingStorage.findAllByBookerIdAndStartDateBeforeAndEndDateAfter(userId, now, now);
+                break;
+            case WAITING:
+            case REJECTED:
+                bookings = bookingStorage.findAllByBookerIdAndStatus(userId, BookingStatus.valueOf(state.name()), Pageable.unpaged());
+                break;
+            default:
+                throw new IllegalArgumentException("Неизвестное состояние: " + state);
+        }
+        return bookings.stream()
+                .map(bookingMapper::toBookingDto)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public BookingDto getBookingById(long bookingId) {
-        Booking booking = bookingStorage.findById(bookingId);
-        if (booking == null) {
-            throw ExceptionFactory.entityNotFound("Бронирование", bookingId);
-        }
-        log.info("Бронирование с id {} найдено.", bookingId);
-        return bookingMapper.bookingToBookingDto(booking);
-    }
+    public List<BookingDto> getAllOwnerBookings(Long userId, BookingState state) {
+        userStorage.findById(userId).orElseThrow(() -> ExceptionFactory.userNotFoundException("Пользователь с ID " + userId + " не найден"));
 
-    @Override
-    public void removeBooking(long bookingId) {
-        Booking booking = bookingStorage.findById(bookingId);
-        if (booking == null) {
-            throw ExceptionFactory.entityNotFound("Бронирование", bookingId);
+        LocalDateTime now = LocalDateTime.now();
+        List<Booking> bookings;
+
+        switch (state) {
+            case ALL:
+                bookings = bookingStorage.findAllByItem_Owner_Id(userId, Pageable.unpaged());
+                break;
+            case PAST:
+                bookings = bookingStorage.findAllByItem_Owner_IdAndEndDateBefore(userId, now, Pageable.unpaged());
+                break;
+            case FUTURE:
+                bookings = bookingStorage.findAllByItem_Owner_IdAndStartDateAfter(userId, now);
+                break;
+            case CURRENT:
+                bookings = bookingStorage.findAllByItem_Owner_IdAndStartDateBeforeAndEndDateAfter(userId, now, now);
+                break;
+            case WAITING:
+            case REJECTED:
+                bookings = bookingStorage.findAllByItem_Owner_IdAndStatus(userId, BookingStatus.valueOf(state.name()), Pageable.unpaged());
+                break;
+            default:
+                throw new IllegalArgumentException("Неизвестное состояние: " + state);
         }
-        bookingStorage.remove(bookingId);
-        log.info("Бронирование с id {} удалено.", bookingId);
+
+        return bookings.stream()
+                .map(bookingMapper::toBookingDto)
+                .collect(Collectors.toList());
     }
 }

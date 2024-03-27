@@ -1,18 +1,32 @@
 package ru.practicum.shareit.item.model;
 
-import lombok.Data;
+import lombok.*;
+import ru.practicum.shareit.user.model.User;
 
-import javax.validation.constraints.NotBlank;
+import javax.persistence.*;
 
+@Entity
+@Table(name = "items")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Item {
-    private long id;
-    @NotBlank(message = "")
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "item_name", nullable = false)
     private String name;
-    @NotBlank(message = "")
+
+    @Column(name = "description", nullable = false)
     private String description;
-    @NotBlank(message = "Необходимо указать доступность предмета.")
+
+    @Column(name = "available", nullable = false)
     private Boolean available;
-    private Long owner;
-    private String request;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    @ToString.Exclude
+    private User owner;
 }

@@ -23,4 +23,8 @@ public class ExceptionFactory {
     public static UserNotFoundException userNotFoundException(String message) {
         return new UserNotFoundException(message);
     }
+
+    public static InvalidBookingTimeException invalidBookingTime(String message) {
+        return new InvalidBookingTimeException(message);
+    }
 }
