@@ -27,4 +27,12 @@ public class ExceptionFactory {
     public static InvalidBookingTimeException invalidBookingTime(String message) {
         return new InvalidBookingTimeException(message);
     }
+
+    public static NotAuthorizedException notAuthorizedException(String message) {
+        return new NotAuthorizedException(message);
+    }
+
+    public static ItemUnavailableException itemUnavailableException(String message) {
+        return new ItemUnavailableException(message);
+    }
 }

@@ -2,40 +2,57 @@ package ru.practicum.shareit.booking.storage;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
-import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface BookingStorage extends JpaRepository<Booking, Long> {
 
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE b.id = ?1")
+    Optional<Booking> findBookingById(Long bookingId);
 
-    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.item.id = :itemId AND b.booker.id = :userId AND b.end < CURRENT_TIMESTAMP")
-    boolean hasUserRentedItem(@Param("userId") Long userId, @Param("itemId") Long itemId);
+    @Query("SELECT b FROM Booking b JOIN b.item i JOIN FETCH b.booker u WHERE i.id = ?1")
+    List<Booking> findAllByItemId(Long itemId);
 
-    List<Booking> findAllByBookerIdAndStatus(Long userId, BookingStatus status, org.springframework.data.domain.Pageable pageable);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE i.id = ?1 AND u.id = ?2")
+    List<Booking> findAllByItemIdAndBookerId(Long itemId, Long bookerId);
 
-    List<Booking> findAllByBookerIdAndEndBefore(Long userId, LocalDateTime endDateTime);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE i.id IN ?1")
+    List<Booking> findAllByItemIdIn(Collection<Long> itemIds);
 
-    List<Booking> findAllByBookerIdAndStartAfter(Long userId, LocalDateTime startDateTime);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE b.item.owner.id = ?1 ORDER BY b.start DESC")
+    List<Booking> findAllByItemOwnerId(Long ownerId);
 
-    List<Booking> findAllByBookerIdAndStartBeforeAndEndAfter(Long userId, LocalDateTime startDateTime, LocalDateTime endDateTime);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE i.owner.id = ?1 AND b.start <= ?2 AND b.end >= ?3 ORDER BY b.start DESC")
+    List<Booking> findCurrentBookingsByOwnerId(Long ownerId, LocalDateTime startBefore,
+                                               LocalDateTime endAfter);
 
-    @Query("SELECT b FROM Booking b WHERE b.item.owner.id = :userId")
-    List<Booking> findAllByItem_Owner_Id(@Param("userId") Long userId, Pageable pageable);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE i.owner.id = ?1 AND b.end <= ?2 ORDER BY b.start DESC")
+    List<Booking> findPastBookingsByOwnerId(Long ownerId, LocalDateTime endBefore);
 
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE i.owner.id = ?1 AND b.start >= ?2 ORDER BY b.start DESC")
+    List<Booking> findFutureBookingsByOwnerId(Long ownerId, LocalDateTime startAfter);
 
-    List<Booking> findAllByItem_Owner_IdAndEndBefore(Long ownerId, LocalDateTime endDateTime, Pageable pageable);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE i.owner.id = ?1 AND b.status = ?2")
+    List<Booking> findBookingsByOwnerIdAndStatus(Long ownerId, BookingStatus status);
 
-    List<Booking> findAllByItem_Owner_IdAndStartAfter(Long ownerId, LocalDateTime startDateTime);
-
-    List<Booking> findAllByItem_Owner_IdAndStartBeforeAndEndAfter(Long ownerId, LocalDateTime startDateTime, LocalDateTime endDateTime);
-
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE b.booker.id = ?1 ORDER BY b.start DESC")
     List<Booking> findAllByBookerId(Long bookerId);
 
-    List<Booking> findAllByItem_Owner_IdAndStatus(Long ownerId, BookingStatus status, Pageable pageable);
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE b.booker.id = ?1 AND b.start <= ?2 AND b.end >= ?3 ORDER BY b.start DESC")
+    List<Booking> findCurrentBookingsByBookerId(Long ownerId, LocalDateTime startBefore,
+                                                LocalDateTime endAfter);
 
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE b.booker.id = ?1 AND b.end <= ?2 ORDER BY b.start DESC")
+    List<Booking> findPastBookingsByBookerId(Long ownerId, LocalDateTime endBefore);
+
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE b.booker.id = ?1 AND b.start >= ?2 ORDER BY b.start DESC")
+    List<Booking> findFutureBookingsByBookerId(Long ownerId, LocalDateTime startAfter);
+
+    @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE b.booker.id = ?1 AND b.status = ?2")
+    List<Booking> findBookingsByBookerIdAndStatus(Long ownerId, BookingStatus status);
 }

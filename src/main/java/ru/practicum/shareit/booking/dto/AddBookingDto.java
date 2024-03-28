@@ -7,13 +7,28 @@ import lombok.NoArgsConstructor;
 import javax.validation.constraints.FutureOrPresent;
 import java.time.LocalDateTime;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import ru.practicum.shareit.ValidateDateRange;
+
+import javax.validation.constraints.NotNull;
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
+@ValidateDateRange(start = "start", end = "end", message = "Задан некорректный интервал бронирования.")
 public class AddBookingDto {
-    @FutureOrPresent(message = "Start date must be in the future or present")
-    private LocalDateTime start;
-    @FutureOrPresent(message = "End date must be in the future or present")
-    private LocalDateTime end;
+
+    @NotNull(message = "Не указан идентификатор вещи.")
     private Long itemId;
+
+    @NotNull(message = "Не указана дата начала бронирования.")
+    private LocalDateTime start;
+
+    @NotNull(message = "Не указана дата окончания бронирования.")
+    private LocalDateTime end;
 }
