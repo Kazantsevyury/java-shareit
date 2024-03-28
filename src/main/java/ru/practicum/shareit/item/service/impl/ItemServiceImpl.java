@@ -2,23 +2,34 @@ package ru.practicum.shareit.item.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.context.annotation.Lazy;
+
+import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.exception.ExceptionFactory;
+import ru.practicum.shareit.exception.exceptions.AccessDeniedException;
 import ru.practicum.shareit.exception.exceptions.EntityNotFoundException;
-import ru.practicum.shareit.item.ItemDtoValidator;
-import ru.practicum.shareit.item.ItemMapper;
-import ru.practicum.shareit.item.ItemValidator;
-import ru.practicum.shareit.item.dao.ItemStorage;
+import ru.practicum.shareit.item.ItemBookingFacadeImpl;
+import ru.practicum.shareit.item.dto.ItemCreateDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemResponseDto;
+import ru.practicum.shareit.item.dto.ItemUpdateDto;
+import ru.practicum.shareit.item.dto.comment.CommentCreateDto;
+import ru.practicum.shareit.item.dto.comment.CommentDto;
+import ru.practicum.shareit.item.mapper.CommentMapper;
+import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.ItemService;
-import ru.practicum.shareit.user.UserValidator;
+import ru.practicum.shareit.item.storage.CommentStorage;
+import ru.practicum.shareit.item.storage.ItemStorage;
+import ru.practicum.shareit.user.UserMapper;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserService;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,94 +38,89 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ItemServiceImpl implements ItemService {
     private final ItemStorage itemStorage;
-    private final ItemMapper itemMapper;
-    private final ItemDtoValidator itemDtoValidator;
+    private final CommentStorage commentStorage;
+    @Lazy
     private final UserService userService;
-    private final ItemValidator itemValidator;
-    private final UserValidator userValidator;
+    @Lazy
+
+    private final UserMapper userMapper;
+    private final ItemMapper itemMapper;
+    private final CommentMapper commentMapper;
 
     @Override
-    public ItemDto addItem(ItemDto itemDto, Long userId) {
-        userValidator.verifyUserExists(userId);
+    @Transactional
+    public ItemDto addItem(Long userId, ItemCreateDto itemDto) {
 
-        Item item = itemMapper.itemDtoToItem(itemDto);
-
-        item.setOwner(userId);
-        itemValidator.validate(item);
-        Item savedItem = itemStorage.add(item);
-        return itemMapper.itemToItemDto(savedItem);
+        UserDto ownerDTO = userService.findUserById(userId);
+        Item item = itemMapper.fromItemCreateDto(itemDto);
+        item.setOwner(userMapper.fromUserDto(ownerDTO));
+        Item savedItem = itemStorage.save(item);
+        return itemMapper.toItemDto(savedItem);
     }
 
     @Override
-    public ItemDto updateItem(ItemDto itemDto, Long userId, Long itemId) {
-        userValidator.verifyUserExists(userId);
-        Item existingItem = itemStorage.findById(itemId);
-        if (existingItem == null || !existingItem.getOwner().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Нет доступа к этому предмету или предмет не найден");
-        }
+    @Transactional
+    public ItemDto updateItem(Long userId, Long itemId, ItemUpdateDto itemUpdateDto) {
+        Item item = itemStorage.findById(itemId)
+                .orElseThrow(() -> ExceptionFactory.entityNotFound("Item", itemId));
 
-        boolean updated = false;
-        if (itemDto.getName() != null) {
-            existingItem.setName(itemDto.getName());
-            updated = true;
+        if (!item.getOwner().getId().equals(userId)) {
+            throw ExceptionFactory.accessDenied("User не является хозяином. ");
         }
-        if (itemDto.getDescription() != null) {
-            existingItem.setDescription(itemDto.getDescription());
-            updated = true;
-        }
-        if (itemDto.getAvailable() != null) {
-            existingItem.setAvailable(itemDto.getAvailable());
-            updated = true;
-        }
-
-        if (!updated) {
-            throw ExceptionFactory.invalidData("Нет данных для обновления");
-        }
-
-        itemStorage.update(existingItem);
-        return itemMapper.itemToItemDto(existingItem);
-    }
-
-
-    @Override
-    public Collection<Item> getAllItems() {
-        log.info("Получение списка всех предметов.");
-        return itemStorage.findAll().stream()
-                .collect(Collectors.toCollection(ArrayList::new));
+        itemMapper.updateItemFromItemUpdateDto(itemUpdateDto, item);
+        Item updatedItem = itemStorage.save(item);
+        return itemMapper.toItemDto(updatedItem);
     }
 
     @Override
-    public Item getItemById(Long itemId) {
-        final Item item = itemStorage.findById(itemId);
-        if (item == null) {
-            throw new EntityNotFoundException("Предмет с id " + itemId + " не найден.");
-        }
-        log.info("Предмет с id {} найден.", itemId);
-        return item;
+    public ItemResponseDto findItemById(Long userId, Long itemId) {
+        Item item = itemStorage.findById(itemId)
+                .orElseThrow(() -> ExceptionFactory.entityNotFound("Item", itemId));
+        List<CommentDto> comments = commentStorage.findAllByItemId(itemId)
+                .stream()
+                .map(commentMapper::toCommentDto)
+                .collect(Collectors.toList());
+        return itemMapper.toItemResponseDto(item, comments);
     }
+
+    @Override
+    public List<ItemResponseDto> findAllItemsByUserId(Long userId) {
+        List<Item> items = itemStorage.findAllByOwnerIdOrderById(userId);
+        return items.stream()
+                .map(item -> {
+                    List<CommentDto> comments = commentStorage.findAllByItemId(item.getId())
+                            .stream()
+                            .map(commentMapper::toCommentDto)
+                            .collect(Collectors.toList());
+                    return itemMapper.toItemResponseDto(item, comments);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ItemDto> searchItems(String text) {
+        if (text.isBlank()) {
+            return List.of();
+        }
+        return itemStorage.searchAvailableItemsByText(text.toLowerCase())
+                .stream()
+                .map(itemMapper::toItemDto)
+                .collect(Collectors.toList());
+    }
+
+
+
 
     @Override
     public void removeItem(Long itemId) {
-        final Item item = itemStorage.findById(itemId);
-        if (item == null) {
-            throw new EntityNotFoundException("Предмет с id " + itemId + " не найден для удаления.");
-        }
-        itemStorage.remove(itemId);
-        log.info("Предмет с id {} удален.", itemId);
+        itemStorage.deleteById(itemId);
     }
 
     @Override
-    public List<ItemDto> getAllItemsByOwner(Long userId) {
-        return itemStorage.findAllByOwnerId(userId).stream()
-                .map(itemMapper::itemToItemDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ItemDto> searchAvailableItems(String text) {
-        return itemStorage.searchAvailableItemsByText(text).stream()
-                .map(itemMapper::itemToItemDto)
-                .collect(Collectors.toList());
+    public Item getPureItemById(Long id){
+        Item item = itemStorage.findById(id)
+                .orElseThrow(() -> ExceptionFactory.entityNotFound("Item", id));
+        return item;
     }
 
 }
