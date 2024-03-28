@@ -24,11 +24,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ItemController {
     private final ItemService itemService;
+    private final ItemBookingFacade itemBookingFacade;
 
     @PostMapping
     public ResponseEntity<ItemDto> addItem(@RequestBody @Valid ItemCreateDto itemCreateDto,
                                            @RequestHeader("X-Sharer-User-Id") Long userId) {
-        ItemDto createdItem = itemService.addItem(userId, itemCreateDto);
+        ItemDto createdItem = itemBookingFacade.addItem(userId, itemCreateDto);
         return new ResponseEntity<>(createdItem, HttpStatus.CREATED);
     }
 
@@ -63,6 +64,6 @@ public class ItemController {
     public CommentDto addCommentToItem(@RequestHeader("X-Sharer-User-Id") Long userId,
                                        @PathVariable Long itemId,
                                        @RequestBody @Valid CommentCreateDto commentDto) {
-        return itemService.addCommentToItem(userId, itemId, commentDto);
+        return itemBookingFacade.addCommentToItem(userId, itemId, commentDto);
     }
 }

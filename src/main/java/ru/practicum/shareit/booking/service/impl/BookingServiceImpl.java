@@ -1,82 +1,46 @@
 package ru.practicum.shareit.booking.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Lazy;
+
 import ru.practicum.shareit.booking.BookingMapper;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
-import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.enums.BookingState;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.booking.storage.BookingStorage;
-import ru.practicum.shareit.exception.ExceptionFactory;
-import ru.practicum.shareit.exception.exceptions.EntityNotFoundException;
-import ru.practicum.shareit.exception.exceptions.ItemNotFoundException;
-import ru.practicum.shareit.item.storage.ItemStorage;
-import ru.practicum.shareit.user.UserStorage;
+
+import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.service.ItemService;
+import ru.practicum.shareit.user.UserMapper;
 
 import javax.transaction.Transactional;
 import org.springframework.data.domain.Pageable;
+import ru.practicum.shareit.user.service.UserService;
+
 import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
     private final BookingStorage bookingStorage;
-    private final UserStorage userStorage;
-    private final ItemStorage itemStorage;
+    @Lazy
+    private final UserService userService;
+
+
     private final BookingMapper bookingMapper;
+    private final UserMapper userMapper;
+    private final ItemMapper itemMapper;
 
-    @Override
-    @Transactional
-    public BookingResponseDto addBooking(Long userId, AddBookingDto bookingDto) {
-        var user = userStorage.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден по id: " + userId));
-
-        var item = itemStorage.findById(bookingDto.getItemId())
-                .orElseThrow(() -> new ItemNotFoundException("Предмет не найден по id: " + bookingDto.getItemId()));
-
-        if (!item.getAvailable()) {
-            throw new IllegalArgumentException("Предмет с id: " + bookingDto.getItemId() + " недоступен для бронирования.");
-        }
-
-        if (item.getOwner().getId().equals(userId)) {
-            throw new IllegalArgumentException("Владелец не может бронировать свой предмет.");
-        }
-
-        if (bookingDto.getStart() == null || bookingDto.getEnd() == null) {
-            throw new IllegalArgumentException("Дата начала и окончания не должны быть пустыми.");
-        }
-
-        if (bookingDto.getStart().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Дата начала не должна быть в прошлом.");
-        }
-
-        if (bookingDto.getStart().isEqual(bookingDto.getEnd())) {
-            throw new IllegalArgumentException("Дата начала и окончания не могут совпадать.");
-        }
-
-        if (bookingDto.getStart().isAfter(bookingDto.getEnd())) {
-            throw new IllegalArgumentException("Дата начала должна быть раньше даты окончания.");
-        }
-
-        Booking booking = new Booking();
-        booking.setStart(bookingDto.getStart());
-        booking.setEnd(bookingDto.getEnd());
-        booking.setItem(item);
-        booking.setBooker(user);
-        booking.setStatus(BookingStatus.WAITING);
-
-        Booking savedBooking = bookingStorage.save(booking);
-
-        return bookingMapper.toBookingResponseDto(savedBooking);
-    }
 
     @Override
     @Transactional
@@ -108,7 +72,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
         public List<BookingResponseDto> getAllBookingsFromUser(Long userId, BookingState state) {
-        userStorage.findById(userId).orElseThrow(() -> ExceptionFactory.userNotFoundException("Пользователь с ID " + userId + " не найден"));
+        userService.findUserById(userId);
 
         LocalDateTime now = LocalDateTime.now();
         List<Booking> bookings;
@@ -140,7 +104,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
         public List<BookingResponseDto> getAllOwnerBookings(Long userId, BookingState state) {
-        userStorage.findById(userId).orElseThrow(() -> ExceptionFactory.userNotFoundException("Пользователь с ID " + userId + " не найден"));
+        userService.findUserById(userId);
 
         LocalDateTime now = LocalDateTime.now();
         List<Booking> bookings;
@@ -170,4 +134,25 @@ public class BookingServiceImpl implements BookingService {
                     .map(booking -> bookingMapper.toBookingResponseDto(booking))
                     .collect(Collectors.toList());
     }
+
+    @Override
+    public final Booking simpleSave(Booking booking){
+        if (booking == null) {
+            log.error("Объект booking равен null");
+            return null;
+        }
+        log.info("Сохраняем booking: {}", booking);
+        try {
+            return bookingStorage.save(booking);
+        } catch (Exception e) {
+            log.error("Ошибка при сохранении booking", e);
+            throw e;
+        }
+    }
+
+    @Override
+    public boolean hasUserRentedItem(Long userId, Long itemId){
+        return bookingStorage.hasUserRentedItem(userId,itemId);
+    }
+
 }

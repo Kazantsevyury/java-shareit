@@ -10,13 +10,14 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface BookingStorage extends JpaRepository <Booking, Long> {
+public interface BookingStorage extends JpaRepository<Booking, Long> {
 
 
     @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.item.id = :itemId AND b.booker.id = :userId AND b.end < CURRENT_TIMESTAMP")
     boolean hasUserRentedItem(@Param("userId") Long userId, @Param("itemId") Long itemId);
 
     List<Booking> findAllByBookerIdAndStatus(Long userId, BookingStatus status, org.springframework.data.domain.Pageable pageable);
+
     List<Booking> findAllByBookerIdAndEndBefore(Long userId, LocalDateTime endDateTime);
 
     List<Booking> findAllByBookerIdAndStartAfter(Long userId, LocalDateTime startDateTime);
@@ -34,10 +35,7 @@ public interface BookingStorage extends JpaRepository <Booking, Long> {
     List<Booking> findAllByItem_Owner_IdAndStartBeforeAndEndAfter(Long ownerId, LocalDateTime startDateTime, LocalDateTime endDateTime);
 
     List<Booking> findAllByBookerId(Long bookerId);
+
     List<Booking> findAllByItem_Owner_IdAndStatus(Long ownerId, BookingStatus status, Pageable pageable);
 
-
 }
-
-
-

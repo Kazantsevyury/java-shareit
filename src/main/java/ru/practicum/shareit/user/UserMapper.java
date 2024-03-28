@@ -27,4 +27,12 @@ public interface UserMapper {
             @Mapping(source = "email", target = "email", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     })
     User updateUserFromDto(UserUpdateDto dto, @MappingTarget User user);
+
+    @Mappings({
+            @Mapping(target = "id", source = "id"),
+            @Mapping(source = "name", target = "name"),
+            @Mapping(source = "email", target = "email"),
+            @Mapping(target = "items", ignore = true) // Игнорируем, так как items не входит в DTO
+    })
+    User fromUserDto(UserDto dto);
 }

@@ -3,11 +3,13 @@ package ru.practicum.shareit.item.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.booking.storage.BookingStorage;
+import org.springframework.context.annotation.Lazy;
+
+import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.exception.ExceptionFactory;
 import ru.practicum.shareit.exception.exceptions.AccessDeniedException;
 import ru.practicum.shareit.exception.exceptions.EntityNotFoundException;
-import ru.practicum.shareit.exception.exceptions.UserNotFoundException;
+import ru.practicum.shareit.item.ItemBookingFacadeImpl;
 import ru.practicum.shareit.item.dto.ItemCreateDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemResponseDto;
@@ -21,8 +23,10 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.item.storage.CommentStorage;
 import ru.practicum.shareit.item.storage.ItemStorage;
-import ru.practicum.shareit.user.UserStorage;
+import ru.practicum.shareit.user.UserMapper;
+import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.service.UserService;
 
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
@@ -34,19 +38,22 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ItemServiceImpl implements ItemService {
     private final ItemStorage itemStorage;
-    private final UserStorage userStorage;
     private final CommentStorage commentStorage;
+    @Lazy
+    private final UserService userService;
+    @Lazy
+
+    private final UserMapper userMapper;
     private final ItemMapper itemMapper;
     private final CommentMapper commentMapper;
-    private final BookingStorage bookingStorage;
 
     @Override
     @Transactional
     public ItemDto addItem(Long userId, ItemCreateDto itemDto) {
-        User owner = userStorage.findById(userId)
-                .orElseThrow(() -> ExceptionFactory.userNotFoundException("User не найден: " + userId));
+
+        UserDto ownerDTO = userService.findUserById(userId);
         Item item = itemMapper.fromItemCreateDto(itemDto);
-        item.setOwner(owner);
+        item.setOwner(userMapper.fromUserDto(ownerDTO));
         Item savedItem = itemStorage.save(item);
         return itemMapper.toItemDto(savedItem);
     }
@@ -101,32 +108,19 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    @Transactional
-    public CommentDto addCommentToItem(Long userId, Long itemId, CommentCreateDto commentDto) {
-        if (!bookingStorage.hasUserRentedItem(userId, itemId)) {
-            throw new AccessDeniedException("Пользователь не арендовал предмет.");
-        }
 
-        User author = userStorage.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("Userне найден, с  id: " + userId));
-        Item item = itemStorage.findById(itemId)
-                .orElseThrow(() -> new EntityNotFoundException("Item не найдено, с id: " + itemId));
-
-        Comment comment = new Comment();
-        comment.setText(commentDto.getText());
-        comment.setItem(item);
-        comment.setAuthor(author);
-        comment.setCreated(LocalDateTime.now());
-        Comment savedComment = commentStorage.save(comment);
-
-        return commentMapper.toCommentDto(savedComment);
-    }
 
 
     @Override
     public void removeItem(Long itemId) {
         itemStorage.deleteById(itemId);
+    }
+
+    @Override
+    public Item getPureItemById(Long id){
+        Item item = itemStorage.findById(id)
+                .orElseThrow(() -> ExceptionFactory.entityNotFound("Item", id));
+        return item;
     }
 
 }

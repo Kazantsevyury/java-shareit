@@ -32,4 +32,14 @@ public interface ItemMapper {
     })
     void updateItemFromItemUpdateDto(ItemUpdateDto itemUpdateDto, @MappingTarget Item item);
 
+    @Mappings({
+            @Mapping(target = "name", source = "name"),
+            @Mapping(target = "description", source = "description"),
+            @Mapping(target = "available", source = "available"),
+            @Mapping(target = "ownerId", source = "owner.id")
+    })
+    ItemCreateDto toItemCreateDto(Item item);
+
+
+
 }

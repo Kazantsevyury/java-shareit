@@ -90,4 +90,11 @@ public class UserServiceImpl implements UserService {
         userStorage.delete(temporaryUser);
     }
 
+    @Override
+    public User getPureUserById(Long userId) {
+        User user = userStorage.findById(userId).orElseThrow(() ->
+                ExceptionFactory.userNotFoundException("Пользователь с ID " + userId + " не найден"));
+        return user;
+    };
+
 }
