@@ -73,6 +73,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotAuthorizedException.class)
     public ResponseEntity<?> handleNotAuthorizedException(NotAuthorizedException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
     }
 }

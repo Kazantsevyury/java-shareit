@@ -5,11 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.item.dto.ItemCreateDto;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.ItemResponseDto;
+import ru.practicum.shareit.item.dto.GetItemDto;
 import ru.practicum.shareit.item.dto.ItemUpdateDto;
-import ru.practicum.shareit.item.dto.comment.CommentCreateDto;
+import ru.practicum.shareit.item.dto.comment.AddCommentDto;
 import ru.practicum.shareit.item.dto.comment.CommentDto;
 import ru.practicum.shareit.item.service.ItemService;
 
@@ -27,7 +26,7 @@ public class ItemController {
     private final ItemBookingFacade itemBookingFacade;
 
     @PostMapping
-    public ResponseEntity<ItemDto> addItem(@RequestBody @Valid ItemCreateDto itemCreateDto,
+    public ResponseEntity<ItemDto> addItem(@RequestBody @Valid ItemDto itemCreateDto,
                                            @RequestHeader("X-Sharer-User-Id") Long userId) {
         ItemDto createdItem = itemBookingFacade.addItem(userId, itemCreateDto);
         return new ResponseEntity<>(createdItem, HttpStatus.CREATED);
@@ -42,15 +41,15 @@ public class ItemController {
     }
 
     @GetMapping("/{itemId}")
-    public ResponseEntity<ItemResponseDto> getItemById(@PathVariable Long itemId,
-                                                       @RequestHeader("X-Sharer-User-Id") Long userId) {
-        ItemResponseDto itemResponseDto = itemService.findItemById(userId, itemId);
-        return ResponseEntity.ok(itemResponseDto);
+    public ResponseEntity<GetItemDto> getItemById(@PathVariable Long itemId,
+                                                  @RequestHeader("X-Sharer-User-Id") Long userId) {
+        GetItemDto getItemDto = itemService.findItemById(userId, itemId);
+        return ResponseEntity.ok(getItemDto);
     }
 
     @GetMapping
-    public ResponseEntity<List<ItemResponseDto>> getAllItemsByOwner(@RequestHeader("X-Sharer-User-Id") Long userId) {
-        List<ItemResponseDto> items = itemService.findAllItemsByUserId(userId);
+    public ResponseEntity<List<GetItemDto>> getAllItemsByOwner(@RequestHeader("X-Sharer-User-Id") Long userId) {
+        List<GetItemDto> items = itemService.findAllItemsByUserId(userId);
         return ResponseEntity.ok(items);
     }
 
@@ -63,7 +62,7 @@ public class ItemController {
     @PostMapping("/{itemId}/comment")
     public CommentDto addCommentToItem(@RequestHeader("X-Sharer-User-Id") Long userId,
                                        @PathVariable Long itemId,
-                                       @RequestBody @Valid CommentCreateDto commentDto) {
+                                       @RequestBody @Valid AddCommentDto commentDto) {
         return itemBookingFacade.addCommentToItem(userId, itemId, commentDto);
     }
 }

@@ -2,6 +2,7 @@ package ru.practicum.shareit.booking.storage;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 
@@ -16,7 +17,7 @@ public interface BookingStorage extends JpaRepository<Booking, Long> {
     Optional<Booking> findBookingById(Long bookingId);
 
     @Query("SELECT b FROM Booking b JOIN b.item i JOIN FETCH b.booker u WHERE i.id = ?1")
-    List<Booking> findAllByItemId(Long itemId);
+    List<Booking> findAllByItemIdList(Long itemId);
 
     @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE i.id = ?1 AND u.id = ?2")
     List<Booking> findAllByItemIdAndBookerId(Long itemId, Long bookerId);
@@ -55,4 +56,7 @@ public interface BookingStorage extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE b.booker.id = ?1 AND b.status = ?2")
     List<Booking> findBookingsByBookerIdAndStatus(Long ownerId, BookingStatus status);
+
+    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.item.id = :itemId AND b.booker.id = :userId AND b.end < CURRENT_TIMESTAMP")
+    boolean hasUserRentedItem(@Param("userId") Long userId, @Param("itemId") Long itemId);
 }

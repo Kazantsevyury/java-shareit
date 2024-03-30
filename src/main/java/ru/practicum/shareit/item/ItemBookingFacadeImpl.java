@@ -13,13 +13,11 @@ import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 
 import ru.practicum.shareit.booking.service.impl.BookingServiceImpl;
-import ru.practicum.shareit.exception.exceptions.CustomBadRequestException;
 import ru.practicum.shareit.exception.exceptions.ItemUnavailableException;
 import ru.practicum.shareit.exception.exceptions.NotAuthorizedException;
-import ru.practicum.shareit.item.dto.ItemCreateDto;
+import ru.practicum.shareit.item.dto.GetItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.ItemResponseDto;
-import ru.practicum.shareit.item.dto.comment.CommentCreateDto;
+import ru.practicum.shareit.item.dto.comment.AddCommentDto;
 import ru.practicum.shareit.item.dto.comment.CommentDto;
 import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.model.Comment;
@@ -27,7 +25,6 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.CommentService;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.user.UserMapper;
-import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserService;
 
@@ -53,26 +50,19 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
 
 
     @Override
-    public ItemDto addItem(Long userId,ItemCreateDto itemDto) {
+    public ItemDto addItem(Long userId, ItemDto itemDto) {
         return itemService.addItem(userId, itemDto);
     }
 
 
     @Override
-    public List<ItemResponseDto> findItemsByUserId(Long userId) {
+    public List<GetItemDto> findItemsByUserId(Long userId) {
         return itemService.findAllItemsByUserId(userId);
     }
 
     @Override
     @Transactional
     public BookingDto addBooking(final Long userId, final AddBookingDto bookingDto) {
-        // Костыль для конкретного теста
-        synchronized (ItemBookingFacadeImpl.class) {
-            if (userId == 1 && bookingDto.getItemId() == 2 && !isCustomBadRequestTriggered) {
-                isCustomBadRequestTriggered = true; // Устанавливаем флаг, что костыль сработал
-                throw new CustomBadRequestException("Предмет с id: " + bookingDto.getItemId() + " недоступен для бронирования пользователем с id: " + userId);
-            }
-        }
         User user = userService.getPureUserById(userId);
         Item item = itemService.getPureItemById(bookingDto.getItemId());
 
@@ -96,14 +86,7 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         log.info("Пользователь с id '{}' добавил бронирование вещи с id '{}'.", userId, bookingDto.getItemId());
         return bookingMapper.toDto(savedBooking);
     }
-    /*@Override
-    public boolean hasUserRentedItem(Long userId, Long itemId) {
 
-        userService.findUserById(userId);
-        itemService.findItemById(userId, itemId);
-
-        return bookingService.hasUserRentedItem(userId, itemId);
-    }*/
     @Override
     @Transactional
     public BookingDto acknowledgeBooking(final Long userId, final Long bookingId, final Boolean approved) {
@@ -153,27 +136,32 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         return bookingMapper.toDtoList(Lists.newArrayList(result));
     }
 
-    @Override
-    @Transactional
-    public CommentDto addCommentToItem(Long userId, Long itemId, CommentCreateDto commentDto) {
-        /*
-        boolean hasRented = bookingService.hasUserRentedItem(userId, itemId);
-        if (!hasRented) {
-            throw new AccessDeniedException("Пользователь не арендовал предмет.");
-        } */
-        UserDto authorDto = userService.findUserById(userId);
-        User author =  userMapper.fromUserDto(userService.findUserById(userId));
-        itemService.findItemById(author.getId(), itemId);
-        Item item = itemService.getPureItemById(itemId);
+@Override
+@Transactional
+public CommentDto addCommentToItem(final Long userId, final Long itemId, final AddCommentDto commentDto) {
+    userService.findUserById(userId);
+    final User user = userService.getPureUserById(userId);
+    final Item item = itemService.getPureItemById(itemId);
+    List<Booking> bookings = bookingService.findAllByItemIdAndBookerId(itemId, userId);
+    checkIfUserCanAddComments(userId, itemId, bookings);
+    Comment comment = Comment.builder()
+            .text(commentDto.getText())
+            .item(item)
+            .author(user)
+            .created(LocalDateTime.now())
+            .build();
+    Comment savedComment = commentService.save(comment);
+    return commentMapper.toCommentDto(savedComment);
+}
 
-        Comment comment = new Comment();
-        comment.setText(commentDto.getText());
-        comment.setItem(item);
-        comment.setAuthor(author);
-        comment.setCreated(LocalDateTime.now());
-        Comment savedComment = commentService.save(comment);
-
-        return commentMapper.toCommentDto(savedComment);
+    private void checkIfUserCanAddComments(Long userId, Long itemId, List<Booking> bookings) {
+        boolean isAbleToAddComment = bookings.stream()
+                .anyMatch(booking -> booking.getBooker().getId().equals(userId) && booking.getEnd().isBefore(LocalDateTime.now())
+                        && booking.getStatus().equals(BookingStatus.APPROVED));
+        if (!isAbleToAddComment) {
+            throw new ItemUnavailableException("Пользователь с id '" + userId + "' не брал в аренду вещь с id '" +
+                    itemId + "'.");
+        }
     }
 
 

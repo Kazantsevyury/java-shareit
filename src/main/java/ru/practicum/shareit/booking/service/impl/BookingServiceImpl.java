@@ -4,7 +4,6 @@ package ru.practicum.shareit.booking.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.booking.BookingMapper;
 
 import ru.practicum.shareit.booking.dto.GetBookingState;
 import ru.practicum.shareit.booking.enums.BookingStatus;
@@ -16,6 +15,7 @@ import ru.practicum.shareit.item.model.Item;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +23,6 @@ import java.time.LocalDateTime;
 public class BookingServiceImpl implements BookingService {
 
     private final BookingStorage bookingStorage;
-    private final BookingMapper bookingMapper;
 
     @Override
     public Booking findBooking(final Long bookingId) {
@@ -35,6 +34,10 @@ public class BookingServiceImpl implements BookingService {
         if (!item.getAvailable()) {
             throw new ItemUnavailableException("Вещь недоступна для бронирования.");
         }
+    }
+
+    public List<Booking> findAllByItemIdIn(List<Long> itemIds) {
+        return bookingStorage.findAllByItemIdIn(itemIds);
     }
 
     public Iterable<Booking> getAllSortedBookingsFromUser(final GetBookingState state, Iterable<Booking> result,
@@ -90,5 +93,14 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public Booking pureSave(Booking booking) {
         return bookingStorage.save(booking);
+    }
+
+    @Override
+    public List<Booking> findAllByItemId(Long itemId) {
+        return bookingStorage.findAllByItemIdList(itemId);
+    }
+
+    public List<Booking> findAllByItemIdAndBookerId(Long itemId, Long userId) {
+        return bookingStorage.findAllByItemIdAndBookerId(itemId,userId);
     }
 }

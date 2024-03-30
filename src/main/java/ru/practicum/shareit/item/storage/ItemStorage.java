@@ -12,5 +12,7 @@ public interface ItemStorage extends JpaRepository<Item, Long> {
     @Query("SELECT i FROM Item i WHERE (LOWER(i.name) LIKE LOWER(CONCAT('%', ?1, '%')) OR LOWER(i.description) LIKE LOWER(CONCAT('%', ?1, '%'))) AND i.available = true")
     List<Item> searchAvailableItemsByText(String text);
 
+
+
 }
 
