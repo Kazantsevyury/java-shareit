@@ -16,7 +16,6 @@ public interface ItemBookingFacade {
     BookingDto addBooking(final Long userId, final AddBookingDto bookingDto);
 
     List<GetItemDto> findItemsByUserId(Long userId);
-    //boolean hasUserRentedItem(Long userId, Long itemId);
 
     CommentDto addCommentToItem(Long userId, Long itemId, AddCommentDto commentDto);
 
