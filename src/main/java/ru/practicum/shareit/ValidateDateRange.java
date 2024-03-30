@@ -19,8 +19,8 @@ public @interface ValidateDateRange {
 
     String message() default "Неверно заданы даты.";
 
-    Class<?>[] groups() default {};
+     Class<?>[] groups() default {};
 
-    Class<? extends Payload>[] payload() default {};
+     Class<? extends Payload>[] payload() default {};
 }
 

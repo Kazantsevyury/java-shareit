@@ -8,9 +8,11 @@ import java.time.LocalDateTime;
 
 public class ValidateDateRangeValidator implements ConstraintValidator<ValidateDateRange, Object> {
 
-    String start;
-    String end;
-    String message;
+    private String start;
+
+    private String end;
+
+    private String message;
 
     @Override
     public void initialize(ValidateDateRange constraintAnnotation) {
