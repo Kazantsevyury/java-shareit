@@ -15,7 +15,6 @@ import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.impl.BookingServiceImpl;
 import ru.practicum.shareit.exception.exceptions.ItemUnavailableException;
 import ru.practicum.shareit.exception.exceptions.NotAuthorizedException;
-import ru.practicum.shareit.item.dto.GetItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.comment.AddCommentDto;
 import ru.practicum.shareit.item.dto.comment.CommentDto;
@@ -52,12 +51,6 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
         return itemService.addItem(userId, itemDto);
-    }
-
-
-    @Override
-    public List<GetItemDto> findItemsByUserId(Long userId) {
-        return itemService.findAllItemsByUserId(userId);
     }
 
     @Override
@@ -136,23 +129,23 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         return bookingMapper.toDtoList(Lists.newArrayList(result));
     }
 
-@Override
-@Transactional
-public CommentDto addCommentToItem(final Long userId, final Long itemId, final AddCommentDto commentDto) {
-    userService.findUserById(userId);
-    final User user = userService.getPureUserById(userId);
-    final Item item = itemService.getPureItemById(itemId);
-    List<Booking> bookings = bookingService.findAllByItemIdAndBookerId(itemId, userId);
-    checkIfUserCanAddComments(userId, itemId, bookings);
-    Comment comment = Comment.builder()
-            .text(commentDto.getText())
-            .item(item)
-            .author(user)
-            .created(LocalDateTime.now())
-            .build();
-    Comment savedComment = commentService.save(comment);
-    return commentMapper.toCommentDto(savedComment);
-}
+    @Override
+    @Transactional
+    public CommentDto addCommentToItem(final Long userId, final Long itemId, final AddCommentDto commentDto) {
+        userService.findUserById(userId);
+        final User user = userService.getPureUserById(userId);
+        final Item item = itemService.getPureItemById(itemId);
+        List<Booking> bookings = bookingService.findAllByItemIdAndBookerId(itemId, userId);
+        checkIfUserCanAddComments(userId, itemId, bookings);
+        Comment comment = Comment.builder()
+                .text(commentDto.getText())
+                .item(item)
+                .author(user)
+                .created(LocalDateTime.now())
+                .build();
+        Comment savedComment = commentService.save(comment);
+        return commentMapper.toCommentDto(savedComment);
+    }
 
     private void checkIfUserCanAddComments(Long userId, Long itemId, List<Booking> bookings) {
         boolean isAbleToAddComment = bookings.stream()
