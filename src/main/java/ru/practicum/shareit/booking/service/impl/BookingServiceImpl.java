@@ -1,17 +1,21 @@
 package ru.practicum.shareit.booking.service.impl;
 
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.booking.BookingMapper;
-import ru.practicum.shareit.booking.dao.BookingStorage;
-import ru.practicum.shareit.booking.dto.BookingDto;
+
+import ru.practicum.shareit.booking.dto.GetBookingState;
+import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.BookingService;
-import ru.practicum.shareit.exception.ExceptionFactory;
+import ru.practicum.shareit.booking.storage.BookingStorage;
+import ru.practicum.shareit.exception.exceptions.*;
+import ru.practicum.shareit.item.model.Item;
 
-import java.util.Collection;
-import java.util.stream.Collectors;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,57 +23,84 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements BookingService {
 
     private final BookingStorage bookingStorage;
-    private final BookingMapper bookingMapper;
 
     @Override
-    public BookingDto addBooking(BookingDto bookingDto) {
-        final Booking booking = bookingMapper.bookingDtoToBooking(bookingDto);
-        final Booking addedBooking = bookingStorage.add(booking);
-        log.info("Добавление нового бронирования: {}", addedBooking);
-        Booking resultBooking = bookingStorage.findById(addedBooking.getId());
-        if (resultBooking == null) {
-            throw ExceptionFactory.entityNotFound("Бронирование", addedBooking.getId());
+    public Booking findBooking(final Long bookingId) {
+        return bookingStorage.findBookingById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Бронирование с id '" + bookingId + "' не найдено."));
+    }
+
+    private void checkItemAvailability(final Item item) {
+        if (!item.getAvailable()) {
+            throw new ItemUnavailableException("Вещь недоступна для бронирования.");
         }
-        return bookingMapper.bookingToBookingDto(resultBooking);
+    }
+
+    public List<Booking> findAllByItemIdIn(List<Long> itemIds) {
+        return bookingStorage.findAllByItemIdIn(itemIds);
+    }
+
+    public Iterable<Booking> getAllSortedBookingsFromUser(final GetBookingState state, Iterable<Booking> result,
+                                                          final Long userId) {
+        switch (state) {
+            case ALL:
+                result = bookingStorage.findAllByItemOwnerId(userId);
+                break;
+            case CURRENT:
+                result = bookingStorage.findCurrentBookingsByOwnerId(userId, LocalDateTime.now(), LocalDateTime.now());
+                break;
+            case PAST:
+                result = bookingStorage.findPastBookingsByOwnerId(userId, LocalDateTime.now());
+                break;
+            case FUTURE:
+                result = bookingStorage.findFutureBookingsByOwnerId(userId, LocalDateTime.now());
+                break;
+            case WAITING:
+                result = bookingStorage.findBookingsByOwnerIdAndStatus(userId, BookingStatus.WAITING);
+                break;
+            case REJECTED:
+                result = bookingStorage.findBookingsByOwnerIdAndStatus(userId, BookingStatus.REJECTED);
+                break;
+        }
+        return result;
+    }
+
+    public Iterable<Booking> getAllSortedBookingsFromBooker(final GetBookingState state, Iterable<Booking> result,
+                                                            final Long bookerId) {
+        switch (state) {
+            case ALL:
+                result = bookingStorage.findAllByBookerId(bookerId);
+                break;
+            case CURRENT:
+                result = bookingStorage.findCurrentBookingsByBookerId(bookerId, LocalDateTime.now(), LocalDateTime.now());
+                break;
+            case PAST:
+                result = bookingStorage.findPastBookingsByBookerId(bookerId, LocalDateTime.now());
+                break;
+            case FUTURE:
+                result = bookingStorage.findFutureBookingsByBookerId(bookerId, LocalDateTime.now());
+                break;
+            case WAITING:
+                result = bookingStorage.findBookingsByBookerIdAndStatus(bookerId, BookingStatus.WAITING);
+                break;
+            case REJECTED:
+                result = bookingStorage.findBookingsByBookerIdAndStatus(bookerId, BookingStatus.REJECTED);
+                break;
+        }
+        return result;
     }
 
     @Override
-    public BookingDto updateBooking(BookingDto bookingDto) {
-        Booking booking = bookingStorage.findById(bookingDto.getId());
-        if (booking == null) {
-            throw ExceptionFactory.entityNotFound("Бронирование", bookingDto.getId());
-        }
-        final Booking updatedBooking = bookingMapper.bookingDtoToBooking(bookingDto);
-        bookingStorage.update(updatedBooking);
-        log.info("Обновление бронирования с id {}: {}", bookingDto.getId(), updatedBooking);
-        return bookingMapper.bookingToBookingDto(updatedBooking);
+    public Booking pureSave(Booking booking) {
+        return bookingStorage.save(booking);
     }
 
     @Override
-    public Collection<BookingDto> getAllBookings() {
-        log.info("Получение списка всех бронирований.");
-        return bookingStorage.findAll().stream()
-                .map(bookingMapper::bookingToBookingDto)
-                .collect(Collectors.toList());
+    public List<Booking> findAllByItemId(Long itemId) {
+        return bookingStorage.findAllByItemIdList(itemId);
     }
 
-    @Override
-    public BookingDto getBookingById(long bookingId) {
-        Booking booking = bookingStorage.findById(bookingId);
-        if (booking == null) {
-            throw ExceptionFactory.entityNotFound("Бронирование", bookingId);
-        }
-        log.info("Бронирование с id {} найдено.", bookingId);
-        return bookingMapper.bookingToBookingDto(booking);
-    }
-
-    @Override
-    public void removeBooking(long bookingId) {
-        Booking booking = bookingStorage.findById(bookingId);
-        if (booking == null) {
-            throw ExceptionFactory.entityNotFound("Бронирование", bookingId);
-        }
-        bookingStorage.remove(bookingId);
-        log.info("Бронирование с id {} удалено.", bookingId);
+    public List<Booking> findAllByItemIdAndBookerId(Long itemId, Long userId) {
+        return bookingStorage.findAllByItemIdAndBookerId(itemId,userId);
     }
 }
