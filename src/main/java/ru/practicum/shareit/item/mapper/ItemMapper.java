@@ -16,8 +16,6 @@ public interface ItemMapper {
 
     Item toModel(ItemDto itemDto);
 
-    List<ItemDto> toDtoList(List<Item> itemList);
-
     GetItemDto toWithBookingsDto(Item item);
 
     List<GetItemDto> toWithBookingsDtoList(List<Item> itemList);
