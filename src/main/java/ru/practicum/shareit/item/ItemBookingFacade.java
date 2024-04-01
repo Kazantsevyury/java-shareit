@@ -3,7 +3,6 @@ package ru.practicum.shareit.item;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.GetBookingState;
-import ru.practicum.shareit.item.dto.GetItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.comment.AddCommentDto;
 import ru.practicum.shareit.item.dto.comment.CommentDto;
@@ -14,8 +13,6 @@ public interface ItemBookingFacade {
     ItemDto addItem(Long userId, ItemDto itemDto);
 
     BookingDto addBooking(final Long userId, final AddBookingDto bookingDto);
-
-    List<GetItemDto> findItemsByUserId(Long userId);
 
     CommentDto addCommentToItem(Long userId, Long itemId, AddCommentDto commentDto);
 
