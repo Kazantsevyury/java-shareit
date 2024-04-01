@@ -15,7 +15,6 @@ import ru.practicum.shareit.user.service.UserService;
 
 import javax.transaction.Transactional;
 import java.util.Collection;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -95,6 +94,6 @@ public class UserServiceImpl implements UserService {
         User user = userStorage.findById(userId).orElseThrow(() ->
                 ExceptionFactory.userNotFoundException("Пользователь с ID " + userId + " не найден"));
         return user;
-    };
+    }
 
 }
