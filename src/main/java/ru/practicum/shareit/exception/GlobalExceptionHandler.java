@@ -39,13 +39,24 @@ public class GlobalExceptionHandler {
         return buildResponseEntity(ex, status);
     }
 
+    @ExceptionHandler(ItemRequestNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleItemRequestNotFoundException(ItemRequestNotFoundException ex) {
+        return buildResponseEntity(ex, HttpStatus.NOT_FOUND); // Directly using NOT_FOUND status
+    }
+
+    @ExceptionHandler(UnsupportedStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleUnsupportedStatusException(UnsupportedStatusException ex) {
+        return buildResponseEntity(ex, HttpStatus.BAD_REQUEST); // Использование BAD_REQUEST
+    }
+
     private ResponseEntity<Map<String, Object>> buildResponseEntity(RuntimeException ex, HttpStatus status) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
+        body.put("error", ex.getMessage());
         body.put("message", ex.getMessage());
 
         return new ResponseEntity<>(body, status);
     }
+
 }

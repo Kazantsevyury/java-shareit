@@ -13,4 +13,5 @@ public interface BookingService {
     List<Booking> findAllByItemId(Long itemId);
 
     List<Booking> findAllByItemIdIn(List<Long> itemIds);
+    Booking getBookingByIdAndUserId(Long bookingId, Long userId);
 }

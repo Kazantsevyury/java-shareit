@@ -103,4 +103,15 @@ public class BookingServiceImpl implements BookingService {
     public List<Booking> findAllByItemIdAndBookerId(Long itemId, Long userId) {
         return bookingStorage.findAllByItemIdAndBookerId(itemId,userId);
     }
+
+    @Override
+    public Booking getBookingByIdAndUserId(Long bookingId, Long userId) {
+        Booking booking = findBooking(bookingId);
+
+        if (!booking.getItem().getOwner().getId().equals(userId) && !booking.getBooker().getId().equals(userId)) {
+            throw new ItemRequestNotFoundException("Бронирование с id '" + bookingId + "' не найдено.");
+        }
+
+        return booking;
+    }
 }
