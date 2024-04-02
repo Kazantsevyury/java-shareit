@@ -41,7 +41,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ItemRequestNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleItemRequestNotFoundException(ItemRequestNotFoundException ex) {
-        return buildResponseEntity(ex, HttpStatus.NOT_FOUND); // Directly using NOT_FOUND status
+        return buildResponseEntity(ex, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(BookingOwnershipException.class)
+    public ResponseEntity<Map<String, Object>> handleBookingOwnershipException(BookingOwnershipException ex) {
+        return buildResponseEntity(ex, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(UnsupportedStatusException.class)

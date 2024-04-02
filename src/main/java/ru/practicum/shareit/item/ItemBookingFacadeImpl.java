@@ -12,6 +12,7 @@ import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 
 import ru.practicum.shareit.booking.service.impl.BookingServiceImpl;
+import ru.practicum.shareit.exception.exceptions.BookingOwnershipException;
 import ru.practicum.shareit.exception.exceptions.ItemUnavailableException;
 import ru.practicum.shareit.exception.exceptions.NotAuthorizedException;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -86,7 +87,7 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         final Booking booking = bookingService.findBooking(bookingId);
         final Item item = booking.getItem();
         if (!item.getOwner().getId().equals(userId)) {
-            throw new NotAuthorizedException("Пользователь с id '" + userId +
+            throw new BookingOwnershipException("Пользователь с id '" + userId +
                     "' не является владельцем вещи с id '" + item.getId() + "'.");
         }
         if (!booking.getStatus().equals(BookingStatus.WAITING)) {
