@@ -44,6 +44,11 @@ public class GlobalExceptionHandler {
         return buildResponseEntity(ex, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ItemOwnershipException.class)
+    public ResponseEntity<Map<String, Object>> handleItemOwnershipException(ItemOwnershipException ex) {
+        return buildResponseEntity(ex, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(BookingOwnershipException.class)
     public ResponseEntity<Map<String, Object>> handleBookingOwnershipException(BookingOwnershipException ex) {
         return buildResponseEntity(ex, HttpStatus.NOT_FOUND);

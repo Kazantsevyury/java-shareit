@@ -13,6 +13,7 @@ import ru.practicum.shareit.booking.model.Booking;
 
 import ru.practicum.shareit.booking.service.impl.BookingServiceImpl;
 import ru.practicum.shareit.exception.exceptions.BookingOwnershipException;
+import ru.practicum.shareit.exception.exceptions.ItemOwnershipException;
 import ru.practicum.shareit.exception.exceptions.ItemUnavailableException;
 import ru.practicum.shareit.exception.exceptions.NotAuthorizedException;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -60,7 +61,7 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         Item item = itemService.getPureItemById(bookingDto.getItemId());
 
         if (item.getOwner().getId().equals(userId)) {
-            throw new NotAuthorizedException("Вещь с id '" + item.getId() +
+            throw new ItemOwnershipException("Вещь с id '" + item.getId() +
                     "' уже принадлежит пользователю с id '" + userId + "'.");
         }
 
@@ -75,7 +76,7 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
                 .start(bookingDto.getStart())
                 .end(bookingDto.getEnd())
                 .build();
-        Booking savedBooking = bookingService.pureSave(booking); // Убедитесь, что метод pureSave корректно реализован
+        Booking savedBooking = bookingService.pureSave(booking);
         log.info("Пользователь с id '{}' добавил бронирование вещи с id '{}'.", userId, bookingDto.getItemId());
         return bookingMapper.toDto(savedBooking);
     }
