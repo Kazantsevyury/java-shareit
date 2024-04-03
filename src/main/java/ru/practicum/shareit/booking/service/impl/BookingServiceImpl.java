@@ -3,13 +3,10 @@ package ru.practicum.shareit.booking.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import ru.practicum.shareit.booking.BookingMapper;
-import ru.practicum.shareit.booking.dto.BookingDto;
-import ru.practicum.shareit.booking.dto.GetBookingState;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.BookingService;
@@ -34,12 +31,6 @@ public class BookingServiceImpl implements BookingService {
     public Booking findBooking(final Long bookingId) {
         return bookingStorage.findBookingById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Бронирование с id '" + bookingId + "' не найдено."));
-    }
-
-    private void checkItemAvailability(final Item item) {
-        if (!item.getAvailable()) {
-            throw new ItemUnavailableException("Вещь недоступна для бронирования.");
-        }
     }
 
     public List<Booking> findAllByItemIdIn(List<Long> itemIds) {
@@ -71,14 +62,6 @@ public class BookingServiceImpl implements BookingService {
 
         return booking;
     }
-    public Page<Booking> findAllByBookerIdAndStatus(Long bookerId, BookingStatus bookingStatus, Pageable pageable) {
-        return bookingStorage.findAllByBookerIdAndStatus(bookerId, bookingStatus,  pageable);
-    }
-
-    public Page<Booking> findAllByOwnerIdAndStatus(Long ownerId, BookingStatus bookingStatus, Pageable pageable) {
-        return bookingStorage.findAllByBookerIdAndStatus(ownerId, bookingStatus, pageable);
-
-    }
 
     @Override
     public Iterable<Booking> findAllByItemOwnerId(Long userId, Pageable pageable) {
@@ -109,21 +92,24 @@ public class BookingServiceImpl implements BookingService {
         return bookingStorage.findAllByBookerId( bookerId,  pageable);
 
     }
+
     @Override
     public Iterable<Booking> findCurrentBookingsByBookerId(Long bookerId, LocalDateTime now, LocalDateTime now1, Pageable pageable){
         return bookingStorage.findCurrentBookingsByBookerId( bookerId,  now,  now1,  pageable);
 
     }
+
     @Override
     public Iterable<Booking> findPastBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable){
         return bookingStorage.findPastBookingsByBookerId( bookerId,  now,  pageable);
-
     }
+
     @Override
     public Iterable<Booking> findFutureBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable){
         return bookingStorage.findFutureBookingsByBookerId( bookerId,  now,  pageable);
 
     }
+
     @Override
     public Iterable<Booking> findBookingsByBookerIdAndStatus(Long bookerId, BookingStatus bookingStatus, Pageable pageable){
         return bookingStorage.findBookingsByBookerIdAndStatus( bookerId,  bookingStatus,  pageable);

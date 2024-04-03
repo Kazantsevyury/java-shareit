@@ -3,7 +3,6 @@ package ru.practicum.shareit.item;
 import com.google.common.collect.Lists;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.OffsetPageRequest;
@@ -35,7 +34,6 @@ import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -50,7 +48,6 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
     private final BookingMapper bookingMapper;
     private final CommentMapper commentMapper;
     private final UserMapper userMapper;
-
 
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
@@ -117,7 +114,6 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         }
     }
 
-
     @Override
     public List<BookingDto> getAllBookingsFromUser(final Long userId, final GetBookingState state, Long from,
                                                    Integer size, boolean isOwner) {
@@ -130,6 +126,7 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         }
         return bookingMapper.toDtoList(Lists.newArrayList(result));
     }
+
     private Iterable<Booking> getBookingFromOwner(Long userId, GetBookingState state, Long from, Integer size, Iterable<Booking> result) {
         OffsetPageRequest pageRequest = OffsetPageRequest.of(from, size);
         result = getAllSortedBookingsFromUser(state, result, userId, pageRequest);
@@ -221,6 +218,5 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
                     itemId + "'.");
         }
     }
-
 
 }

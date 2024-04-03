@@ -1,13 +1,8 @@
 package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.ResponseEntity;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
-import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.BookingService;
-import ru.practicum.shareit.exception.exceptions.CustomBadRequestException;
 import ru.practicum.shareit.item.ItemBookingFacade;
 
 import org.springframework.web.bind.annotation.GetMapping;

@@ -24,5 +24,4 @@ public interface ItemBookingFacade {
 
     BookingDto getBookingById(Long userId, Long bookingId);
 
-
 }
