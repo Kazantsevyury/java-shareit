@@ -3,6 +3,7 @@ package ru.practicum.shareit.item.mapper;
 
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import ru.practicum.shareit.booking.dto.ShortBookingDto;
 import ru.practicum.shareit.item.dto.GetItemDto;
@@ -13,7 +14,7 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface ItemMapper {
-
+    @Mapping(source = "request.id", target = "requestId")
     ItemDto toDto(Item item);
 
     Item toModel(ItemDto itemDto);
