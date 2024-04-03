@@ -3,8 +3,12 @@ package ru.practicum.shareit.booking.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
+import ru.practicum.shareit.booking.BookingMapper;
+import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.GetBookingState;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
@@ -12,7 +16,7 @@ import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.booking.storage.BookingStorage;
 import ru.practicum.shareit.exception.exceptions.*;
 import ru.practicum.shareit.item.model.Item;
-
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +27,8 @@ import java.util.List;
 public class BookingServiceImpl implements BookingService {
 
     private final BookingStorage bookingStorage;
+    private final BookingMapper bookingMapper;
+
 
     @Override
     public Booking findBooking(final Long bookingId) {
@@ -40,55 +46,6 @@ public class BookingServiceImpl implements BookingService {
         return bookingStorage.findAllByItemIdIn(itemIds);
     }
 
-    public Iterable<Booking> getAllSortedBookingsFromUser(final GetBookingState state, Iterable<Booking> result,
-                                                          final Long userId) {
-        switch (state) {
-            case ALL:
-                result = bookingStorage.findAllByItemOwnerId(userId);
-                break;
-            case CURRENT:
-                result = bookingStorage.findCurrentBookingsByOwnerId(userId, LocalDateTime.now(), LocalDateTime.now());
-                break;
-            case PAST:
-                result = bookingStorage.findPastBookingsByOwnerId(userId, LocalDateTime.now());
-                break;
-            case FUTURE:
-                result = bookingStorage.findFutureBookingsByOwnerId(userId, LocalDateTime.now());
-                break;
-            case WAITING:
-                result = bookingStorage.findBookingsByOwnerIdAndStatus(userId, BookingStatus.WAITING);
-                break;
-            case REJECTED:
-                result = bookingStorage.findBookingsByOwnerIdAndStatus(userId, BookingStatus.REJECTED);
-                break;
-        }
-        return result;
-    }
-
-    public Iterable<Booking> getAllSortedBookingsFromBooker(final GetBookingState state, Iterable<Booking> result,
-                                                            final Long bookerId) {
-        switch (state) {
-            case ALL:
-                result = bookingStorage.findAllByBookerId(bookerId);
-                break;
-            case CURRENT:
-                result = bookingStorage.findCurrentBookingsByBookerId(bookerId, LocalDateTime.now(), LocalDateTime.now());
-                break;
-            case PAST:
-                result = bookingStorage.findPastBookingsByBookerId(bookerId, LocalDateTime.now());
-                break;
-            case FUTURE:
-                result = bookingStorage.findFutureBookingsByBookerId(bookerId, LocalDateTime.now());
-                break;
-            case WAITING:
-                result = bookingStorage.findBookingsByBookerIdAndStatus(bookerId, BookingStatus.WAITING);
-                break;
-            case REJECTED:
-                result = bookingStorage.findBookingsByBookerIdAndStatus(bookerId, BookingStatus.REJECTED);
-                break;
-        }
-        return result;
-    }
 
     @Override
     public Booking pureSave(Booking booking) {
@@ -114,4 +71,63 @@ public class BookingServiceImpl implements BookingService {
 
         return booking;
     }
+    public Page<Booking> findAllByBookerIdAndStatus(Long bookerId, BookingStatus bookingStatus, Pageable pageable) {
+        return bookingStorage.findAllByBookerIdAndStatus(bookerId, bookingStatus,  pageable);
+    }
+
+    public Page<Booking> findAllByOwnerIdAndStatus(Long ownerId, BookingStatus bookingStatus, Pageable pageable) {
+        return bookingStorage.findAllByBookerIdAndStatus(ownerId, bookingStatus, pageable);
+
+    }
+
+    @Override
+    public Iterable<Booking> findAllByItemOwnerId(Long userId, Pageable pageable) {
+        return bookingStorage.findAllByItemOwnerId( userId,  pageable);
+    }
+
+    @Override
+    public Iterable<Booking> findCurrentBookingsByOwnerId(Long userId, LocalDateTime now, LocalDateTime now1, Pageable pageable) {
+        return bookingStorage.findCurrentBookingsByOwnerId( userId,  now,  now1,  pageable);
+    }
+
+    @Override
+    public Iterable<Booking> findPastBookingsByOwnerId(Long userId, LocalDateTime now, Pageable pageable) {
+        return bookingStorage.findPastBookingsByOwnerId( userId,  now,  pageable);
+    }
+
+    @Override
+    public Iterable<Booking> findFutureBookingsByOwnerId(Long userId, LocalDateTime now, Pageable pageable) {
+        return bookingStorage.findFutureBookingsByOwnerId( userId,  now,  pageable);
+    }
+
+    @Override
+    public Iterable<Booking> findBookingsByOwnerIdAndStatus(Long userId, BookingStatus bookingStatus, Pageable pageable) {
+        return bookingStorage.findBookingsByOwnerIdAndStatus( userId,  bookingStatus,  pageable);
+    }
+    @Override
+    public Iterable<Booking> findAllByBookerId(Long bookerId, Pageable pageable){
+        return bookingStorage.findAllByBookerId( bookerId,  pageable);
+
+    }
+    @Override
+    public Iterable<Booking> findCurrentBookingsByBookerId(Long bookerId, LocalDateTime now, LocalDateTime now1, Pageable pageable){
+        return bookingStorage.findCurrentBookingsByBookerId( bookerId,  now,  now1,  pageable);
+
+    }
+    @Override
+    public Iterable<Booking> findPastBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable){
+        return bookingStorage.findPastBookingsByBookerId( bookerId,  now,  pageable);
+
+    }
+    @Override
+    public Iterable<Booking> findFutureBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable){
+        return bookingStorage.findFutureBookingsByBookerId( bookerId,  now,  pageable);
+
+    }
+    @Override
+    public Iterable<Booking> findBookingsByBookerIdAndStatus(Long bookerId, BookingStatus bookingStatus, Pageable pageable){
+        return bookingStorage.findBookingsByBookerIdAndStatus( bookerId,  bookingStatus,  pageable);
+
+    }
+
 }

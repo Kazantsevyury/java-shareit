@@ -1,6 +1,8 @@
 package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
 import ru.practicum.shareit.booking.model.Booking;
@@ -21,6 +23,9 @@ import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.GetBookingState;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
+import java.util.List;
 
 @RestController
 @RequestMapping(path = "/bookings")
@@ -29,6 +34,7 @@ public class BookingController {
 
     private final BookingService bookingService;
     private final ItemBookingFacade itemBookingFacade;
+    private static final String DEFAULT_PAGE_SIZE = "10";
 
     @PostMapping
     public BookingDto addNewBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
@@ -52,30 +58,18 @@ public class BookingController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllBookingsFromUser(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                                    @RequestParam(defaultValue = "ALL") String state) {
-        if ("UNSUPPORTED_STATUS".equals(state)) {
-            throw new CustomBadRequestException("Unknown state: UNSUPPORTED_STATUS");
-        }
-        try {
-            GetBookingState bookingState = GetBookingState.valueOf(state);
-            return ResponseEntity.ok(itemBookingFacade.getAllBookingsFromUser(userId, bookingState));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Unknown state: " + state);
-        }
+    public List<BookingDto> getAllBookingsFromUser(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                   @RequestParam(defaultValue = "ALL") GetBookingState state,
+                                                   @RequestParam(defaultValue = "0") @PositiveOrZero Long from,
+                                                   @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) @Positive Integer size) {
+        return itemBookingFacade.getAllBookingsFromUser(userId, state, from, size, false);
     }
 
     @GetMapping("/owner")
-    public ResponseEntity<?> getAllOwnerBookings(@RequestHeader("X-Sharer-User-Id") Long userId,
-                                                 @RequestParam(defaultValue = "ALL") String state) {
-        if ("UNSUPPORTED_STATUS".equals(state)) {
-            throw new CustomBadRequestException("Unknown state: UNSUPPORTED_STATUS");
-        }
-        try {
-            GetBookingState bookingState = GetBookingState.valueOf(state);
-            return ResponseEntity.ok(itemBookingFacade.getAllOwnerBookings(userId, bookingState));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Unknown state: " + state);
-        }
+    public List<BookingDto> getAllOwnerBookings(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                @RequestParam(defaultValue = "ALL") GetBookingState state,
+                                                @RequestParam(defaultValue = "0") Long from,
+                                                @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) Integer size) {
+        return itemBookingFacade.getAllBookingsFromUser(userId, state, from, size, true);
     }
 }

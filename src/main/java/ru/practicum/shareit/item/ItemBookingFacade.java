@@ -1,5 +1,7 @@
 package ru.practicum.shareit.item;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.GetBookingState;
@@ -18,9 +20,9 @@ public interface ItemBookingFacade {
 
     BookingDto acknowledgeBooking(Long userId, Long bookingId, Boolean approved);
 
-    List<BookingDto> getAllBookingsFromUser(Long userId, GetBookingState state);
+    List<BookingDto> getAllBookingsFromUser(Long userId, GetBookingState state, Long from, Integer size, boolean isOwner);
 
     BookingDto getBookingById(Long userId, Long bookingId);
 
-    List<BookingDto> getAllOwnerBookings(Long userId, GetBookingState state);
+
 }

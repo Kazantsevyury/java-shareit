@@ -3,7 +3,10 @@ package ru.practicum.shareit.item;
 import com.google.common.collect.Lists;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.OffsetPageRequest;
 import ru.practicum.shareit.booking.BookingMapper;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
@@ -32,6 +35,7 @@ import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -113,20 +117,81 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         }
     }
 
-    @Override
-    public List<BookingDto> getAllOwnerBookings(final Long userId, final GetBookingState state) {
-        userService.findUserById(userId);
-        final Iterable<Booking> result = new ArrayList<>();
-        final Iterable<Booking> allOwnerBookings = bookingService.getAllSortedBookingsFromUser(state, result, userId);
-        return bookingMapper.toDtoList(Lists.newArrayList(allOwnerBookings));
-    }
 
     @Override
-    public List<BookingDto> getAllBookingsFromUser(final Long userId, final GetBookingState state) {
+    public List<BookingDto> getAllBookingsFromUser(final Long userId, final GetBookingState state, Long from,
+                                                   Integer size, boolean isOwner) {
         userService.findUserById(userId);
         Iterable<Booking> result = new ArrayList<>();
-        result = bookingService.getAllSortedBookingsFromBooker(state, result, userId);
+        if (isOwner) {
+            result = getBookingFromOwner(userId, state, from, size, result);
+        } else {
+            result = getBookingFromUser(userId, state, from, size, result);
+        }
         return bookingMapper.toDtoList(Lists.newArrayList(result));
+    }
+    private Iterable<Booking> getBookingFromOwner(Long userId, GetBookingState state, Long from, Integer size, Iterable<Booking> result) {
+        OffsetPageRequest pageRequest = OffsetPageRequest.of(from, size);
+        result = getAllSortedBookingsFromUser(state, result, userId, pageRequest);
+        return result;
+    }
+
+    private Iterable<Booking> getBookingFromUser(Long userId, GetBookingState state, Long from, Integer size, Iterable<Booking> result) {
+        OffsetPageRequest pageRequest = OffsetPageRequest.of(from, size);
+        result = getAllSortedBookingsFromBooker(state, result, userId, pageRequest);
+        return result;
+    }
+
+     private Iterable<Booking> getAllSortedBookingsFromBooker(final GetBookingState state, Iterable<Booking> result,
+                                                             final Long bookerId, Pageable pageable) {
+        switch (state) {
+            case ALL:
+                result = bookingService.findAllByBookerId(bookerId, pageable);
+                break;
+            case CURRENT:
+                result = bookingService.findCurrentBookingsByBookerId(bookerId, LocalDateTime.now(), LocalDateTime.now(),
+                        pageable);
+                break;
+            case PAST:
+                result = bookingService.findPastBookingsByBookerId(bookerId, LocalDateTime.now(), pageable);
+                break;
+            case FUTURE:
+                result = bookingService.findFutureBookingsByBookerId(bookerId, LocalDateTime.now(), pageable);
+                break;
+            case WAITING:
+                result = bookingService.findBookingsByBookerIdAndStatus(bookerId, BookingStatus.WAITING, pageable);
+                break;
+            case REJECTED:
+                result = bookingService.findBookingsByBookerIdAndStatus(bookerId, BookingStatus.REJECTED, pageable);
+                break;
+        }
+        return result;
+    }
+
+     private Iterable<Booking> getAllSortedBookingsFromUser(final GetBookingState state, Iterable<Booking> result,
+                                                           final Long userId, Pageable pageable) {
+        switch (state) {
+            case ALL:
+                result = bookingService.findAllByItemOwnerId(userId, pageable);
+                break;
+            case CURRENT:
+                result = bookingService.findCurrentBookingsByOwnerId(userId, LocalDateTime.now(), LocalDateTime.now(),
+                        pageable);
+                break;
+            case PAST:
+                result = bookingService.findPastBookingsByOwnerId(userId, LocalDateTime.now(), pageable);
+                break;
+            case FUTURE:
+                result = bookingService.findFutureBookingsByOwnerId(userId, LocalDateTime.now(), pageable);
+                break;
+            case WAITING:
+                result = bookingService.findBookingsByOwnerIdAndStatus(userId, BookingStatus.WAITING, pageable);
+                break;
+            case REJECTED:
+                result = bookingService.findBookingsByOwnerIdAndStatus(userId, BookingStatus.REJECTED, pageable);
+                break;
+        }
+        return result;
     }
 
     @Override

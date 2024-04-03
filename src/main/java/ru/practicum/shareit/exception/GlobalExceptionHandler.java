@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ru.practicum.shareit.exception.exceptions.*;
 
 import java.time.LocalDateTime;
@@ -59,6 +60,23 @@ public class GlobalExceptionHandler {
         return buildResponseEntity(ex, HttpStatus.BAD_REQUEST); // Использование BAD_REQUEST
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", status.value());
+
+        if ("state".equals(ex.getName())) {
+            body.put("error", "Unknown state: " + ex.getValue());
+            body.put("message", "Unknown state: " + ex.getValue());
+        } else {
+            body.put("error", "Request parameter conversion error");
+            body.put("message", ex.getMessage());
+        }
+
+        return new ResponseEntity<>(body, status);
+    }
     private ResponseEntity<Map<String, Object>> buildResponseEntity(RuntimeException ex, HttpStatus status) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
