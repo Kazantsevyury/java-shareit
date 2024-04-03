@@ -60,5 +60,10 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         return itemRequestMapper.toDto(itemRequest);
     }
 
+    @Override
+    public ItemRequest getPureItemRequestById(Long itemRequestId){
+        return itemRequestStorage.getReferenceById(itemRequestId);
+    }
+
 }
 

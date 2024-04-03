@@ -11,6 +11,8 @@ import java.util.List;
 public interface ItemRequestMapper {
 
     ItemRequest toModel(AddItemRequestDto addItemRequestDto);
+    //ItemRequest toModelfromDto(ItemRequestDto itemRequestDto);
+
 
     ItemRequestDto toDto(ItemRequest itemRequest);
 

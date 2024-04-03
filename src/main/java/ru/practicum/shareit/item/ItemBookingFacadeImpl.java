@@ -46,7 +46,6 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
     private final BookingMapper bookingMapper;
     private final CommentMapper commentMapper;
     private final UserMapper userMapper;
-    private static boolean isCustomBadRequestTriggered = false;
 
 
     @Override

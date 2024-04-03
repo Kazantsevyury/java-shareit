@@ -24,5 +24,8 @@ public class ItemDto {
 
     @NotNull(message = "У вещи обязательно должен быть указан статус доступности.")
     private Boolean available;
+
+    private Long requestId;
+
 }
 

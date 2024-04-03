@@ -20,6 +20,10 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.item.storage.CommentStorage;
 import ru.practicum.shareit.item.storage.ItemStorage;
+import ru.practicum.shareit.request.ItemRequest;
+import ru.practicum.shareit.request.ItemRequestMapper;
+import ru.practicum.shareit.request.ItemRequestService;
+import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
@@ -43,20 +47,25 @@ public class ItemServiceImpl implements ItemService {
     private final CommentMapper commentMapper;
     private final BookingMapper bookingMapper;
     private final ItemMapper itemMapper;
+    private final ItemRequestMapper itemRequestMapper;
 
     private final BookingService bookingService;
-
-
+    private final ItemRequestService itemRequestService;
 
     @Override
     @Transactional
     public ItemDto addItem(Long userId, ItemDto itemDto) {
-
         UserDto ownerDTO = userService.findUserById(userId);
         Item item = itemMapper.toModel(itemDto);
         item.setOwner(userMapper.fromUserDto(ownerDTO));
+        if (itemDto.getRequestId() != null) {
+            ItemRequest request = itemRequestService.getPureItemRequestById(itemDto.getRequestId());
+            item.setRequest(request);
+        }
         Item savedItem = itemStorage.save(item);
-        return itemMapper.toDto(savedItem);
+        ItemDto savedItemDto = itemMapper.toDto(savedItem);
+        savedItemDto.setRequestId(itemDto.getRequestId());
+        return savedItemDto;
     }
 
     @Override
