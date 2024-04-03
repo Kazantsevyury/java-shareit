@@ -60,7 +60,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public Iterable<Booking> findAllByItemOwnerId(Long userId, Pageable pageable) {
-        return bookingStorage.findAllByItemOwnerId (userId, pageable);
+        return bookingStorage.findAllByItemOwnerId(userId, pageable);
     }
 
     @Override
