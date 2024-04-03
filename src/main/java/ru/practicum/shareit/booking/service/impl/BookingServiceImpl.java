@@ -84,28 +84,28 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public Iterable<Booking> findAllByBookerId(Long bookerId, Pageable pageable){
+    public Iterable<Booking> findAllByBookerId(Long bookerId, Pageable pageable) {
         return bookingStorage.findAllByBookerId( bookerId,  pageable);
 
     }
 
     @Override
-    public Iterable<Booking> findCurrentBookingsByBookerId(Long bookerId, LocalDateTime now, LocalDateTime now1, Pageable pageable){
+    public Iterable<Booking> findCurrentBookingsByBookerId(Long bookerId, LocalDateTime now, LocalDateTime now1, Pageable pageable) {
         return bookingStorage.findCurrentBookingsByBookerId( bookerId,  now,  now1,  pageable);
     }
 
     @Override
-    public Iterable<Booking> findPastBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable){
+    public Iterable<Booking> findPastBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable) {
         return bookingStorage.findPastBookingsByBookerId( bookerId,  now,  pageable);
     }
 
     @Override
-    public Iterable<Booking> findFutureBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable){
+    public Iterable<Booking> findFutureBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable) {
         return bookingStorage.findFutureBookingsByBookerId( bookerId,  now,  pageable);
     }
 
     @Override
-    public Iterable<Booking> findBookingsByBookerIdAndStatus(Long bookerId, BookingStatus bookingStatus, Pageable pageable){
+    public Iterable<Booking> findBookingsByBookerIdAndStatus(Long bookerId, BookingStatus bookingStatus, Pageable pageable) {
         return bookingStorage.findBookingsByBookerIdAndStatus( bookerId,  bookingStatus,  pageable);
     }
 
