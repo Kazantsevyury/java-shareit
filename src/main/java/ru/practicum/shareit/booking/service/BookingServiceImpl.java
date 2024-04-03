@@ -59,13 +59,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public Iterable<Booking> findAllByItemOwnerId(Long userId, Pageable pageable) {
-        return bookingStorage.findAllByItemOwnerId(userId, pageable);
+    public Iterable<Booking> findCurrentBookingsByOwnerId(Long userId, LocalDateTime now, LocalDateTime now1, Pageable pageable) {
+        return bookingStorage.findCurrentBookingsByOwnerId(userId, now, now1, pageable);
     }
 
     @Override
-    public Iterable<Booking> findCurrentBookingsByOwnerId(Long userId, LocalDateTime now, LocalDateTime now1, Pageable pageable) {
-        return bookingStorage.findCurrentBookingsByOwnerId(userId, now, now1, pageable);
+    public Iterable<Booking> findAllByItemOwnerId(Long userId, Pageable pageable) {
+        return bookingStorage.findAllByItemOwnerId(userId, pageable);
     }
 
     @Override
