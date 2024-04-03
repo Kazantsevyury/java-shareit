@@ -1,9 +1,7 @@
 package ru.practicum.shareit.booking.service.impl;
 
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import ru.practicum.shareit.booking.BookingMapper;
@@ -12,7 +10,6 @@ import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.booking.storage.BookingStorage;
 import ru.practicum.shareit.exception.exceptions.*;
-import ru.practicum.shareit.item.model.Item;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
@@ -26,7 +23,6 @@ public class BookingServiceImpl implements BookingService {
     private final BookingStorage bookingStorage;
     private final BookingMapper bookingMapper;
 
-
     @Override
     public Booking findBooking(final Long bookingId) {
         return bookingStorage.findBookingById(bookingId)
@@ -36,7 +32,6 @@ public class BookingServiceImpl implements BookingService {
     public List<Booking> findAllByItemIdIn(List<Long> itemIds) {
         return bookingStorage.findAllByItemIdIn(itemIds);
     }
-
 
     @Override
     public Booking pureSave(Booking booking) {
@@ -87,6 +82,7 @@ public class BookingServiceImpl implements BookingService {
     public Iterable<Booking> findBookingsByOwnerIdAndStatus(Long userId, BookingStatus bookingStatus, Pageable pageable) {
         return bookingStorage.findBookingsByOwnerIdAndStatus( userId,  bookingStatus,  pageable);
     }
+
     @Override
     public Iterable<Booking> findAllByBookerId(Long bookerId, Pageable pageable){
         return bookingStorage.findAllByBookerId( bookerId,  pageable);
@@ -96,7 +92,6 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public Iterable<Booking> findCurrentBookingsByBookerId(Long bookerId, LocalDateTime now, LocalDateTime now1, Pageable pageable){
         return bookingStorage.findCurrentBookingsByBookerId( bookerId,  now,  now1,  pageable);
-
     }
 
     @Override
@@ -107,13 +102,11 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public Iterable<Booking> findFutureBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable){
         return bookingStorage.findFutureBookingsByBookerId( bookerId,  now,  pageable);
-
     }
 
     @Override
     public Iterable<Booking> findBookingsByBookerIdAndStatus(Long bookerId, BookingStatus bookingStatus, Pageable pageable){
         return bookingStorage.findBookingsByBookerIdAndStatus( bookerId,  bookingStatus,  pageable);
-
     }
 
 }

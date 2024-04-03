@@ -49,6 +49,7 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.name").value("Hrothgar"))
                 .andExpect(jsonPath("$.email").value("hrothgar@yandex.ru"));
     }
+
     @Test
     public void testUpdateUser() throws Exception {
         UserDto userDto = new UserDto(1L, "Updated Hrothgar", "updatedhrothgar@yandex.ru");

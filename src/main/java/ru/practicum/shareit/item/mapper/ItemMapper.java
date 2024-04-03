@@ -33,6 +33,7 @@ public interface ItemMapper {
                 .nextBooking(nextBooking)
                 .build();
     }
+
     @AfterMapping
     default void handleRequest(@MappingTarget ItemDto target, Item source) {
         if (source.getRequest() != null) {

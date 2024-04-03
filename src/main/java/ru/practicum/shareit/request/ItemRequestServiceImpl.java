@@ -70,7 +70,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    public ItemRequest getPureItemRequestById(Long itemRequestId){
+    public ItemRequest getPureItemRequestById(Long itemRequestId) {
         return itemRequestStorage.getReferenceById(itemRequestId);
     }
 
