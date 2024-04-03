@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import ru.practicum.shareit.exception.exceptions.ItemRequestNotFoundException;
+import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.request.dto.AddItemRequestDto;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.user.service.UserService;
@@ -37,15 +38,23 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     public List<ItemRequestDto> getAllItemRequestsFromUser(final Long userId) {
         userService.findUserById(userId);
         final List<ItemRequest> requests = itemRequestStorage.findRequestsFromUser(userId);
-        return itemRequestMapper.toDtoList(requests);
+        List<ItemRequestDto> requestDtos = itemRequestMapper.toDtoList(requests);
+
+        for (ItemRequestDto requestDto : requestDtos) {
+            if (requestDto.getItems() != null) {
+                for (ItemDto itemDto : requestDto.getItems()) {
+                    itemDto.setRequestId(requestDto.getId());
+                }
+            }
+        }
+
+        return requestDtos;
     }
 
     @Override
     public List<ItemRequestDto> getAvailableItemRequests(final Long userId, final Long offset, final Integer size) {
         userService.findUserById(userId);
-        // Рассчитываем номер страницы на основе смещения и размера страницы.
         int page = (int) (offset / size);
-        // Создаем объект PageRequest с использованием номера страницы и размера.
         Pageable pageable = PageRequest.of(page, size, Sort.unsorted());
 
         final Page<ItemRequest> requests = itemRequestStorage.findAvailableRequests(userId, pageable);

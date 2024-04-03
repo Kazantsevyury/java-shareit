@@ -1,7 +1,9 @@
 package ru.practicum.shareit.item.mapper;
 
 
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
+import org.mapstruct.MappingTarget;
 import ru.practicum.shareit.booking.dto.ShortBookingDto;
 import ru.practicum.shareit.item.dto.GetItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -29,5 +31,11 @@ public interface ItemMapper {
                 .lastBooking(lastBooking)
                 .nextBooking(nextBooking)
                 .build();
+    }
+    @AfterMapping
+    default void handleRequest(@MappingTarget ItemDto target, Item source) {
+        if (source.getRequest() != null) {
+            target.setRequestId(source.getRequest().getId());
+        }
     }
 }
