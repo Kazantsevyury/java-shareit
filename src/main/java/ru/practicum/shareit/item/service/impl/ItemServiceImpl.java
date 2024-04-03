@@ -23,7 +23,6 @@ import ru.practicum.shareit.item.storage.ItemStorage;
 import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.request.ItemRequestMapper;
 import ru.practicum.shareit.request.ItemRequestService;
-import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
@@ -47,7 +46,6 @@ public class ItemServiceImpl implements ItemService {
     private final CommentMapper commentMapper;
     private final BookingMapper bookingMapper;
     private final ItemMapper itemMapper;
-    private final ItemRequestMapper itemRequestMapper;
 
     private final BookingService bookingService;
     private final ItemRequestService itemRequestService;
