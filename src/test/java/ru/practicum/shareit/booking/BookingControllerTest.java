@@ -37,7 +37,7 @@ public class BookingControllerTest {
     private ItemBookingFacade itemBookingFacade;
 
     private final Long userId = 1L;
-    private final String HEADER_NAME = "X-Sharer-User-Id";
+    private final String headerName = "X-Sharer-User-Id";
 
     private AddBookingDto validBookingDto;
     private BookingDto responseBookingDto;
@@ -59,7 +59,7 @@ public class BookingControllerTest {
                 LocalDateTime.now().minusDays(1), validBookingDto.getEnd());
 
         mockMvc.perform(post("/bookings")
-                        .header(HEADER_NAME, userId)
+                        .header(headerName, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(bookingWithPastStartDate)))
                 .andExpect(status().isBadRequest());
@@ -74,7 +74,7 @@ public class BookingControllerTest {
         when(itemBookingFacade.acknowledgeBooking(eq(userId), eq(bookingId), eq(approved))).thenReturn(responseBookingDto);
 
         mockMvc.perform(patch("/bookings/{bookingId}", bookingId)
-                        .header(HEADER_NAME, userId)
+                        .header(headerName, userId)
                         .param("approved", approved.toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().json(objectMapper.writeValueAsString(responseBookingDto)));
@@ -88,7 +88,7 @@ public class BookingControllerTest {
         when(itemBookingFacade.getBookingById(eq(userId), eq(bookingId))).thenReturn(responseBookingDto);
 
         mockMvc.perform(get("/bookings/{bookingId}", bookingId)
-                        .header(HEADER_NAME, userId))
+                        .header(headerName, userId))
                 .andExpect(status().isOk())
                 .andExpect(content().json(objectMapper.writeValueAsString(responseBookingDto)));
 
@@ -113,7 +113,7 @@ public class BookingControllerTest {
         String invalidApproved = "invalid";
 
         mockMvc.perform(patch("/bookings/{bookingId}", bookingId)
-                        .header(HEADER_NAME, userId)
+                        .header(headerName, userId)
                         .param("approved", invalidApproved))
                 .andExpect(status().isBadRequest());
 
@@ -126,7 +126,7 @@ public class BookingControllerTest {
                 .thenReturn(List.of(responseBookingDto));
 
         mockMvc.perform(get("/bookings")
-                        .header(HEADER_NAME, userId)
+                        .header(headerName, userId)
                         .param("state", GetBookingState.ALL.name())
                         .param("from", "0")
                         .param("size", "10"))
@@ -143,7 +143,7 @@ public class BookingControllerTest {
                 .thenReturn(List.of(responseBookingDto));
 
         mockMvc.perform(get("/bookings/owner")
-                        .header(HEADER_NAME, userId)
+                        .header(headerName, userId)
                         .param("state", GetBookingState.ALL.name())
                         .param("from", "0")
                         .param("size", "10"))
@@ -168,7 +168,7 @@ public class BookingControllerTest {
     @Test
     void getAllOwnerBookings_UnknownState_ShouldReturnBadRequestStatus() throws Exception {
         mockMvc.perform(get("/bookings/owner")
-                        .header(HEADER_NAME, userId)
+                        .header(headerName, userId)
                         .param("state", "UNKNOWN_STATE")
                         .param("from", "0")
                         .param("size", "10"))
