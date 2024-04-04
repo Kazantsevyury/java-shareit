@@ -134,6 +134,7 @@ class BookingStorageTest {
         Booking foundBooking = foundBookingOpt.get();
         assertEquals(savedBooking1.getId(), foundBooking.getId(), "ID бронирования должны совпадать.");
     }
+
     @Test
     void findAllByItemId_ShouldReturnBookings_WhenItemIdIsProvided() {
         List<Booking> bookings = bookingStorage.findAllByItemId(savedItem1.getId());
