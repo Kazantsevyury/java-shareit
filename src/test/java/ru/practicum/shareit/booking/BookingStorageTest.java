@@ -177,5 +177,4 @@ class BookingStorageTest {
         booking.setEnd(end);
         return booking;
     }
-
 }
