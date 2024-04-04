@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserUpdateDto;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.ArrayList;
@@ -146,4 +147,16 @@ class UserServiceImplTest {
         assertThat(users, notNullValue());
         assertThat(users, is(empty()));
     }
+
+    @Test
+    void getPureUserById_UserFound_ShouldReturnUser() {
+        UserDto savedUser = userService.addUser(userCreateDto);
+
+        User foundUser = userService.getPureUserById(savedUser.getId());
+
+        assertThat(foundUser.getId(), is(savedUser.getId()));
+        assertThat(foundUser.getName(), is(savedUser.getName()));
+        assertThat(foundUser.getEmail(), is(savedUser.getEmail()));
+    }
+
 }

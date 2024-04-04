@@ -32,4 +32,8 @@ public class User {
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private final List<Item> items = new ArrayList<>();
+
+    public void setItems(List<Item> item) {
+
+    }
 }

@@ -91,4 +91,10 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.name").value("Hrothgar"))
                 .andExpect(jsonPath("$.email").value("hrothgar@yandex.ru"));
     }
+
+    @Test
+    public void testDeleteUser() throws Exception {
+        mockMvc.perform(delete("/users/1"))
+                .andExpect(status().isNoContent());
+    }
 }
