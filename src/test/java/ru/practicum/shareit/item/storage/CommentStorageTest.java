@@ -1,4 +1,4 @@
-package ru.practicum.shareit.Item.storage;
+package ru.practicum.shareit.item.storage;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -7,7 +7,6 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.storage.CommentStorage;
 import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;

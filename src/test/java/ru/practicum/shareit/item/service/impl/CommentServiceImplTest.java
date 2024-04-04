@@ -1,4 +1,4 @@
-package ru.practicum.shareit.Item.service.impl;
+package ru.practicum.shareit.item.service.impl;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -7,7 +7,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.model.Comment;
-import ru.practicum.shareit.item.service.impl.CommentServiceImpl;
 import ru.practicum.shareit.item.storage.CommentStorage;
 
 import java.time.LocalDateTime;
