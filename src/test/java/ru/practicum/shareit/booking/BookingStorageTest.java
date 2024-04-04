@@ -144,7 +144,6 @@ class BookingStorageTest {
                 is(true));
     }
 
-
     private Item createItem(Long id) {
         return Item.builder()
                 .name("name" + id)
@@ -167,6 +166,7 @@ class BookingStorageTest {
                 .end(now().plusDays(5 + id))
                 .build();
     }
+
     private Booking createBooking(Item item, User booker, LocalDateTime start, LocalDateTime end, BookingStatus status) {
         Booking booking = new Booking();
         booking.setItem(item);
@@ -176,6 +176,5 @@ class BookingStorageTest {
         booking.setEnd(end);
         return booking;
     }
-
 
 }

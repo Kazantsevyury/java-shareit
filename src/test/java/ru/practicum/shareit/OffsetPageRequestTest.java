@@ -3,7 +3,8 @@ package ru.practicum.shareit;
 
 import org.junit.jupiter.api.Test; import org.springframework.data.domain.Sort; import static org.assertj.core.api.Assertions.assertThat; import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class OffsetPageRequestTest {
-    @Test void testOfMethodWithValidOffsetAndSizeThenReturnOffsetPageRequest() { Long offset = 10L; Integer size = 5; OffsetPageRequest pageRequest = OffsetPageRequest.of(offset, size);
+    @Test void testOfMethodWithValidOffsetAndSizeThenReturnOffsetPageRequest() {
+        Long offset = 10L; Integer size = 5; OffsetPageRequest pageRequest = OffsetPageRequest.of(offset, size);
         assertThat(pageRequest.getOffset()).isEqualTo(offset);
         assertThat(pageRequest.getPageSize()).isEqualTo(size);
         assertThat(pageRequest.getSort()).isEqualTo(Sort.unsorted());
