@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ru.practicum.shareit.exception.exceptions.*;
 
+
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -14,30 +15,29 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({
-            AccessDeniedException.class,
-            UserNotFoundException.class,
-            InvalidDataException.class,
-            EntityAlreadyExistsException.class,
-            EntityNotFoundException.class,
-            InvalidBookingTimeException.class,
-            IllegalArgumentException.class,
-            ItemNotFoundException.class,
-            CustomBadRequestException.class,
-            BookingNotFoundException.class,
-            ItemUnavailableException.class,
-            NotAuthorizedException.class
-    })
-    public ResponseEntity<Map<String, Object>> handleKnownExceptions(RuntimeException ex) {
-        HttpStatus status = HttpStatus.BAD_REQUEST;
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        return buildResponseEntity(ex, HttpStatus.FORBIDDEN);
+    }
 
-        if (ex instanceof AccessDeniedException) status = HttpStatus.FORBIDDEN;
-        else if (ex instanceof UserNotFoundException || ex instanceof EntityNotFoundException || ex instanceof BookingNotFoundException || ex instanceof ItemNotFoundException) status = HttpStatus.NOT_FOUND;
-        else if (ex instanceof EntityAlreadyExistsException) status = HttpStatus.CONFLICT;
-        else if (ex instanceof NotAuthorizedException) status = HttpStatus.UNAUTHORIZED;
-        else if (ex instanceof IllegalArgumentException || ex instanceof InvalidDataException || ex instanceof CustomBadRequestException || ex instanceof InvalidBookingTimeException || ex instanceof ItemUnavailableException) status = HttpStatus.BAD_REQUEST;
+    @ExceptionHandler({UserNotFoundException.class, EntityNotFoundException.class, BookingNotFoundException.class, ItemNotFoundException.class})
+    public ResponseEntity<Map<String, Object>> handleNotFoundException(RuntimeException ex) {
+        return buildResponseEntity(ex, HttpStatus.NOT_FOUND);
+    }
 
-        return buildResponseEntity(ex, status);
+    @ExceptionHandler(EntityAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleEntityAlreadyExistsException(EntityAlreadyExistsException ex) {
+        return buildResponseEntity(ex, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(NotAuthorizedException.class)
+    public ResponseEntity<Map<String, Object>> handleNotAuthorizedException(NotAuthorizedException ex) {
+        return buildResponseEntity(ex, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler({IllegalArgumentException.class, InvalidDataException.class, CustomBadRequestException.class, InvalidBookingTimeException.class, ItemUnavailableException.class, UnsupportedStatusException.class})
+    public ResponseEntity<Map<String, Object>> handleBadRequestException(RuntimeException ex) {
+        return buildResponseEntity(ex, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(ItemRequestNotFoundException.class)
@@ -55,27 +55,21 @@ public class GlobalExceptionHandler {
         return buildResponseEntity(ex, HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(UnsupportedStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleUnsupportedStatusException(UnsupportedStatusException ex) {
-        return buildResponseEntity(ex, HttpStatus.BAD_REQUEST); // Использование BAD_REQUEST
-    }
-
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        HttpStatus status = HttpStatus.BAD_REQUEST;
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
-        body.put("status", status.value());
-
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        String message = "Request parameter conversion error";
         if ("state".equals(ex.getName())) {
-            body.put("error", "Unknown state: " + ex.getValue());
-            body.put("message", "Unknown state: " + ex.getValue());
+            message = "Unknown state: " + ex.getValue();
         } else {
-            body.put("error", "Request parameter conversion error");
-            body.put("message", ex.getMessage());
+            message = ex.getMessage();
         }
+        body.put("error", message);
+        body.put("message", message);
 
-        return new ResponseEntity<>(body, status);
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
     private ResponseEntity<Map<String, Object>> buildResponseEntity(RuntimeException ex, HttpStatus status) {
