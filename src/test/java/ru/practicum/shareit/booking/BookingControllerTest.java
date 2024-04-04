@@ -10,14 +10,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.GetBookingState;
 import ru.practicum.shareit.booking.service.BookingService;
-import ru.practicum.shareit.exception.exceptions.BookingNotFoundException;
 import ru.practicum.shareit.exception.exceptions.ItemOwnershipException;
-import ru.practicum.shareit.exception.exceptions.ItemUnavailableException;
 import ru.practicum.shareit.item.ItemBookingFacade;
 
 
