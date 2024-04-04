@@ -66,6 +66,7 @@ public class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error").value("User not found"))
                 .andExpect(jsonPath("$.status").value(404));
     }
+
     @Test
     void whenAccessDenied_thenRespondWith403() throws Exception {
         given(bookingService.getBookingByIdAndUserId(1L, 1L)).willThrow(new AccessDeniedException("Access is denied"));
@@ -76,6 +77,7 @@ public class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error").value("Access is denied"))
                 .andExpect(jsonPath("$.status").value(403));
     }
+
     @Test
     void whenEntityNotFound_thenRespondWith404() throws Exception {
         given(itemService.findItemById(1L, 1L)).willThrow(new EntityNotFoundException("Item not found"));
@@ -86,6 +88,7 @@ public class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error").value("Item not found"))
                 .andExpect(jsonPath("$.status").value(404));
     }
+
     @Test
     void whenEntityAlreadyExists_thenRespondWith409() throws Exception {
         UserCreateDto userCreateDto = new UserCreateDto("name", "email@test.com");
@@ -99,6 +102,7 @@ public class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error").value("User already exists"))
                 .andExpect(jsonPath("$.status").value(409));
     }
+
     @Test
     void whenNotAuthorizedException_thenRespondWith401() throws Exception {
         given(bookingService.getBookingByIdAndUserId(anyLong(), anyLong())).willThrow(new NotAuthorizedException("Not authorized"));

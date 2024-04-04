@@ -83,6 +83,7 @@ class BookingServiceImplTest {
 
         assertTrue(actualMessage.contains(expectedMessage));
     }
+
     @Test
     void pureSave_ShouldSaveBooking_Success() {
         when(bookingStorage.save(any(Booking.class))).thenReturn(booking);
@@ -92,6 +93,7 @@ class BookingServiceImplTest {
         assertNotNull(savedBooking);
         verify(bookingStorage, times(1)).save(any(Booking.class));
     }
+
     @Test
     void findBooking_ExistingId_ReturnsBooking() {
         when(bookingStorage.findBookingById(anyLong())).thenReturn(java.util.Optional.of(booking));
@@ -108,6 +110,7 @@ class BookingServiceImplTest {
 
         assertThrows(BookingNotFoundException.class, () -> bookingService.findBooking(1L));
     }
+
     @Test
     void findAllByItemIdIn_ShouldReturnListOfBookings_WhenItemIdsAreProvided() {
         List<Long> itemIds = List.of(1L, 2L);
@@ -120,6 +123,7 @@ class BookingServiceImplTest {
         assertEquals(2, result.size());
         verify(bookingStorage, times(1)).findAllByItemIdIn(itemIds);
     }
+
     @Test
     void findAllByItemId_ShouldReturnListOfBookings_WhenItemIdIsProvided() {
         Long itemId = 1L;
@@ -132,6 +136,7 @@ class BookingServiceImplTest {
         assertEquals(2, result.size());
         verify(bookingStorage, times(1)).findAllByItemIdList(itemId);
     }
+
     @Test
     void findAllByItemIdAndBookerId_ShouldReturnBookings_WhenItemIdAndBookerIdAreProvided() {
         Long itemId = 1L;
@@ -145,6 +150,7 @@ class BookingServiceImplTest {
         assertEquals(expectedBookings.size(), actualBookings.size());
         verify(bookingStorage, times(1)).findAllByItemIdAndBookerId(itemId, bookerId);
     }
+
     @Test
     void findCurrentBookingsByOwnerId_ShouldReturnCurrentBookings_WhenOwnerIdIsProvided() {
         Long ownerId = 1L;
@@ -168,6 +174,7 @@ class BookingServiceImplTest {
         assertEquals(currentBooking.getEnd(), actualBooking.getEnd());
         verify(bookingStorage, times(1)).findCurrentBookingsByOwnerId(eq(ownerId), any(LocalDateTime.class), any(LocalDateTime.class), eq(pageable));
     }
+
     @Test
     void findAllByItemOwnerId_ShouldReturnAllBookings_WhenOwnerIdIsProvided() {
         Long ownerId = 1L;
@@ -182,6 +189,7 @@ class BookingServiceImplTest {
         assertEquals(expectedBookings.size(), ((List<Booking>) actualBookings).size());
         verify(bookingStorage, times(1)).findAllByItemOwnerId(ownerId, pageable);
     }
+
     @Test
     void findPastBookingsByOwnerId_ShouldReturnPastBookings_WhenOwnerIdIsProvided() {
         Long ownerId = 1L;
@@ -204,6 +212,7 @@ class BookingServiceImplTest {
         assertEquals(pastBooking.getEnd(), actualBooking.getEnd());
         verify(bookingStorage, times(1)).findPastBookingsByOwnerId(ownerId, now, pageable);
     }
+
     @Test
     void findFutureBookingsByOwnerId_ShouldReturnFutureBookings_WhenOwnerIdIsProvided() {
         Long ownerId = 1L;
@@ -226,6 +235,7 @@ class BookingServiceImplTest {
         assertEquals(futureBooking.getEnd(), actualBooking.getEnd());
         verify(bookingStorage, times(1)).findFutureBookingsByOwnerId(ownerId, now, pageable);
     }
+
     @Test
     void findBookingsByOwnerIdAndStatus_ShouldReturnBookings_WhenOwnerIdAndStatusAreProvided() {
         Long ownerId = 1L;
@@ -245,6 +255,7 @@ class BookingServiceImplTest {
         assertEquals(status, actualBookings.iterator().next().getStatus());
         verify(bookingStorage, times(1)).findBookingsByOwnerIdAndStatus(ownerId, status, pageable);
     }
+
     @Test
     void findAllByBookerId_ShouldReturnAllBookings_WhenBookerIdIsProvided() {
         Long bookerId = 1L;
@@ -259,6 +270,7 @@ class BookingServiceImplTest {
         assertEquals(expectedBookings.size(), ((List<Booking>) actualBookings).size());
         verify(bookingStorage, times(1)).findAllByBookerId(bookerId, pageable);
     }
+
     @Test
     void findCurrentBookingsByBookerId_ShouldReturnCurrentBookings_WhenBookerIdIsProvided() {
         Long bookerId = 1L;
@@ -281,6 +293,7 @@ class BookingServiceImplTest {
         assertEquals(currentBooking.getEnd(), actualBooking.getEnd());
         verify(bookingStorage, times(1)).findCurrentBookingsByBookerId(bookerId, now, now, pageable);
     }
+
     @Test
     void findPastBookingsByBookerId_ShouldReturnPastBookings_WhenBookerIdIsProvided() {
         Long bookerId = 1L;
@@ -303,6 +316,7 @@ class BookingServiceImplTest {
         assertEquals(pastBooking.getEnd(), actualBooking.getEnd());
         verify(bookingStorage, times(1)).findPastBookingsByBookerId(bookerId, now, pageable);
     }
+
     @Test
     void findFutureBookingsByBookerId_ShouldReturnFutureBookings_WhenBookerIdIsProvided() {
         Long bookerId = 1L;
@@ -325,6 +339,7 @@ class BookingServiceImplTest {
         assertEquals(futureBooking.getEnd(), actualBooking.getEnd());
         verify(bookingStorage, times(1)).findFutureBookingsByBookerId(bookerId, now, pageable);
     }
+
     @Test
     void findBookingsByBookerIdAndStatus_ShouldReturnBookings_WhenBookerIdAndStatusAreProvided() {
         Long bookerId = 1L;
@@ -344,6 +359,5 @@ class BookingServiceImplTest {
         assertEquals(bookingWithStatus.getStatus(), actualBookings.iterator().next().getStatus());
         verify(bookingStorage, times(1)).findBookingsByBookerIdAndStatus(bookerId, status, pageable);
     }
-
 
 }

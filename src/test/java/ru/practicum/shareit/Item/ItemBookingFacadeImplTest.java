@@ -123,6 +123,7 @@ class ItemBookingFacadeImplTest {
 
         verify(bookingMapper, times(1)).toDto(any(Booking.class));
     }
+
     @Test
     void addItem_ItemProvided_ShouldReturnItemDto() {
         init();
