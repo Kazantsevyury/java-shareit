@@ -1,6 +1,5 @@
 package ru.practicum.shareit.item.storage;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -10,9 +9,12 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
 public class CommentStorageTest {
@@ -23,29 +25,55 @@ public class CommentStorageTest {
     @Autowired
     private CommentStorage commentStorage;
 
-    private User user;
-    private Item item;
-
-    @BeforeEach
-    public void setUp() {
-        user = new User(1L, "John Doe", "john.doe@example.com");
-        entityManager.merge(user);
-        item = new Item(1L, "Bike", "A nice bike", true, user, null);
-        entityManager.merge(item);
-    }
-
     @Test
-    public void whenFindAllByItemId_thenReturnComments() {
-
-        Comment comment1 = new Comment(null, "Great!", item, user, LocalDateTime.now());
-        Comment comment2 = new Comment(null, "Awesome!", item, user, LocalDateTime.now().plusDays(1));
+    public void testFindAllByItemIdWhenCommentsExistThenReturnComments() {
+        // Arrange
+        User user = User.builder().name("Test User").email("testuser@gmail.com").build();
+        Item item = Item.builder().name("Test Item").description("Test Description").available(true).owner(user).build();
+        Comment comment1 = Comment.builder().text("Test Comment 1").item(item).author(user).created(LocalDateTime.now()).build();
+        Comment comment2 = Comment.builder().text("Test Comment 2").item(item).author(user).created(LocalDateTime.now()).build();
+        entityManager.persist(user);
+        entityManager.persist(item);
         entityManager.persist(comment1);
         entityManager.persist(comment2);
 
+        // Act
         List<Comment> comments = commentStorage.findAllByItemId(item.getId());
 
-        assertThat(comments).hasSize(2);
-        assertThat(comments).extracting(Comment::getText).containsExactlyInAnyOrder("Great!", "Awesome!");
+        // Assert
+        assertEquals(2, comments.size());
+        assertTrue(comments.contains(comment1));
+        assertTrue(comments.contains(comment2));
     }
+
+    @Test
+    public void testFindAllByItemIdWhenNoCommentsExistThenReturnEmptyList() {
+        // Arrange
+        User user = User.builder().name("Test User").email("testuser@gmail.com").build();
+        Item item = Item.builder().name("Test Item").description("Test Description").available(true).owner(user).build();
+        Comment comment = Comment.builder().text("Test Comment").item(item).author(user).created(LocalDateTime.now()).build();
+        entityManager.persist(user);
+        entityManager.persist(item);
+        entityManager.persist(comment);
+
+        // Act
+        List<Comment> comments = commentStorage.findAllByItemId(-1L);
+
+        // Assert
+        assertTrue(comments.isEmpty());
+    }
+
+    @Test
+    public void testFindAllByItemIdInWhenItemIdsEmptyThenReturnEmptyList() {
+        // Arrange
+        List<Long> itemIds = Collections.emptyList();
+
+        // Act
+        List<Comment> comments = commentStorage.findAllByItemIdIn(itemIds);
+
+        // Assert
+        assertThat(comments).isEmpty();
+    }
+
 
 }

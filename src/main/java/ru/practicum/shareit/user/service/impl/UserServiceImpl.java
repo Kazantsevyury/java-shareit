@@ -1,7 +1,6 @@
 package ru.practicum.shareit.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.ExceptionFactory;
 import ru.practicum.shareit.exception.exceptions.EntityAlreadyExistsException;
@@ -19,7 +18,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class UserServiceImpl implements UserService {
     private final UserStorage userStorage;
 

@@ -1,7 +1,6 @@
 package ru.practicum.shareit.item.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.context.annotation.Lazy;
 
@@ -33,7 +32,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ItemServiceImpl implements ItemService {
     private final ItemStorage itemStorage;
     private final CommentStorage commentStorage;
@@ -99,11 +97,11 @@ public class ItemServiceImpl implements ItemService {
         }
         List<Comment> comments = commentStorage.findAllByItemId(item.getId());
         itemWithBookingDatesDto.getComments().addAll(commentMapper.toDtoList(comments));
-        log.info("Получение вещи с id '{}'.", itemId);
         return itemWithBookingDatesDto;
     }
 
-    private List<GetItemDto> getItemsWithBookingsAndComments(List<Item> items, List<Booking> bookings, List<Comment> itemsComments) {
+    @Override
+    public List<GetItemDto> getItemsWithBookingsAndComments(List<Item> items, List<Booking> bookings, List<Comment> itemsComments) {
         if (bookings.isEmpty()) {
             return itemMapper.toWithBookingsDtoList(items);
         }
@@ -122,7 +120,6 @@ public class ItemServiceImpl implements ItemService {
         }
         return result;
     }
-
 
     @Override
     public List<GetItemDto> findAllItemsByUserId(Long userId) {
@@ -148,8 +145,6 @@ public class ItemServiceImpl implements ItemService {
                 .map(itemMapper::toDto)
                 .collect(Collectors.toList());
     }
-
-
 
 
     @Override

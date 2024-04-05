@@ -2,7 +2,10 @@ package ru.practicum.shareit.item;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.OffsetPageRequest;
 import ru.practicum.shareit.booking.BookingMapper;
@@ -12,12 +15,12 @@ import ru.practicum.shareit.booking.dto.GetBookingState;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.BookingServiceImpl;
+import ru.practicum.shareit.exception.exceptions.BookingOwnershipException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.CommentService;
 import ru.practicum.shareit.item.service.impl.ItemServiceImpl;
-
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
@@ -27,10 +30,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -203,4 +206,20 @@ class ItemBookingFacadeImplTest {
         assertEquals(expectedBookingDtoList, resultBookingDtoList);
     }
 
+
+
+
+    @Test
+    void testAcknowledgeBookingWhenNotOwnerThenBookingOwnershipException() {
+        // Arrange
+        init();
+        Boolean approved = true;
+        User otherUser = User.builder().id(6L).build();
+        item.setOwner(otherUser);
+        when(userService.findUserById(userId)).thenReturn(new UserDto());
+        when(bookingService.findBooking(bookingId)).thenReturn(booking);
+
+        // Act & Assert
+        assertThrows(BookingOwnershipException.class, () -> itemBookingFacade.acknowledgeBooking(userId, bookingId, approved));
+    }
 }

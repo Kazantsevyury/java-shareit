@@ -2,7 +2,6 @@ package ru.practicum.shareit.item;
 
 import com.google.common.collect.Lists;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.OffsetPageRequest;
@@ -35,7 +34,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ItemBookingFacadeImpl implements ItemBookingFacade {
@@ -77,7 +75,6 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
                 .end(bookingDto.getEnd())
                 .build();
         Booking savedBooking = bookingService.pureSave(booking);
-        log.info("Пользователь с id '{}' добавил бронирование вещи с id '{}'.", userId, bookingDto.getItemId());
         return bookingMapper.toDto(savedBooking);
     }
 
