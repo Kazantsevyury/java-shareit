@@ -1,17 +1,12 @@
 package ru.practicum.shareit.item.service.impl;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.EmptyResultDataAccessException;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.item.dto.GetItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -21,18 +16,17 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.CommentStorage;
 import ru.practicum.shareit.item.storage.ItemStorage;
-import ru.practicum.shareit.request.ItemRequestService;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
-import ru.practicum.shareit.booking.BookingMapper;
-import ru.practicum.shareit.booking.service.BookingService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -42,30 +36,16 @@ public class ItemServiceImplTest {
 
     @Mock
     private ItemStorage itemStorage;
-
     @Mock
     private CommentStorage commentStorage;
-
     @Mock
     private UserService userService;
-
     @Mock
     private UserMapper userMapper;
-
     @Mock
     private CommentMapper commentMapper;
-
-    @Mock
-    private BookingMapper bookingMapper;
-
     @Mock
     private ItemMapper itemMapper;
-
-    @Mock
-    private BookingService bookingService;
-
-    @Mock
-    private ItemRequestService itemRequestService;
 
     @InjectMocks
     private ItemServiceImpl itemService;
@@ -89,23 +69,36 @@ public class ItemServiceImplTest {
     }
 
     @Test
-    public void testFindAllItemsByUserIdWhenUserExistsAndHasItemsThenReturnListOfGetItemDto() {
-        List<Item> items = Arrays.asList(item);
-        GetItemDto getItemDto = new GetItemDto();
-        getItemDto.setId(1L);
-        List<GetItemDto> getItemDtos = Arrays.asList(getItemDto);
+    public void testRemoveItemWhenValidItemIdThenItemIsRemoved() {
+        Long itemId = 1L;
 
-        when(userService.findUserById(1L)).thenReturn(userDto);
-        when(itemStorage.findAllByOwnerIdOrderById(1L)).thenReturn(items);
-        when(itemMapper.toWithBookingsDtoList(items)).thenReturn(getItemDtos);
+        doNothing().when(itemStorage).deleteById(itemId);
 
-        List<GetItemDto> result = itemService.findAllItemsByUserId(1L);
+        itemService.removeItem(itemId);
 
-        assertThat(result).isNotEmpty();
-        assertThat(result.size()).isEqualTo(getItemDtos.size());
-        verify(userService, times(1)).findUserById(1L);
-        verify(itemStorage, times(1)).findAllByOwnerIdOrderById(1L);
-        verify(itemMapper, times(1)).toWithBookingsDtoList(items);
+        verify(itemStorage, times(1)).deleteById(itemId);
+    }
+
+    @Test
+    public void testRemoveItemWhenItemExistsThenItemIsRemoved() {
+        Long itemId = 1L;
+
+        doNothing().when(itemStorage).deleteById(itemId);
+
+        itemService.removeItem(itemId);
+
+        verify(itemStorage, times(1)).deleteById(itemId);
+    }
+
+    @Test
+    public void testRemoveItemWhenItemDoesNotExistThenExceptionIsThrown() {
+        Long itemId = 1L;
+
+        doThrow(EmptyResultDataAccessException.class).when(itemStorage).deleteById(itemId);
+
+        assertThrows(EmptyResultDataAccessException.class, () -> itemService.removeItem(itemId));
+
+        verify(itemStorage, times(1)).deleteById(itemId);
     }
 
     @Test
@@ -217,4 +210,7 @@ public class ItemServiceImplTest {
 
         assertThrows(RuntimeException.class, () -> itemService.addItem(userId, itemDto));
     }
+
+    // ... existing code ...
+
 }

@@ -6,8 +6,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import ru.practicum.shareit.item.mapper.CommentMapper;
+import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Comment;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.item.storage.CommentStorage;
+import ru.practicum.shareit.item.storage.ItemStorage;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.service.UserService;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -20,9 +26,21 @@ class CommentServiceImplTest {
 
     @Mock
     private CommentStorage commentStorage;
+    @Mock
+    private ItemStorage itemStorage;
+    @Mock
+    private Item item;
+    @Mock
+    private UserDto userDto;
 
     @Mock
     private CommentMapper commentMapper;
+    @Mock
+    UserService userService;
+    @Mock
+    ItemService itemService;
+    @Mock
+    ItemMapper itemMapper;
 
     @InjectMocks
     private CommentServiceImpl commentService;
