@@ -12,7 +12,8 @@ public class InternalServerExceptionTest {
 
         InternalServerException exception = assertThrows(
                 InternalServerException.class,
-                () -> { throw new InternalServerException(expectedMessage); }
+                () -> { throw new InternalServerException(expectedMessage);
+                }
         );
 
         // Assert that the exception is thrown
