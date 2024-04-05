@@ -7,13 +7,22 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.ItemStorage;
+import ru.practicum.shareit.request.ItemRequest;
+import ru.practicum.shareit.request.ItemRequestService;
+import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
+import ru.practicum.shareit.user.model.User;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import static org.mockito.ArgumentMatchers.any;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class ItemServiceImplTest {
@@ -24,44 +33,93 @@ public class ItemServiceImplTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private ItemMapper itemMapper;
+
+    @Mock
+    private ItemRequestService itemRequestService;
+
     @InjectMocks
     private ItemServiceImpl itemService;
 
+    @Captor
+    private ArgumentCaptor<Item> itemCaptor;
+
+    private Long userId;
     private ItemDto itemDto;
     private UserDto userDto;
     private Item item;
 
     @BeforeEach
     public void setUp() {
+        userId = 1L;
         itemDto = new ItemDto();
-        itemDto.setId(1L);
-        itemDto.setName("Item1");
-        itemDto.setDescription("Description1");
-        itemDto.setAvailable(true);
-
         userDto = new UserDto();
-        userDto.setId(1L);
-        userDto.setName("User1");
-        userDto.setEmail("user1@example.com");
-
         item = new Item();
-        item.setId(1L);
-        item.setName("Item1");
-        item.setDescription("Description1");
-        item.setAvailable(true);
     }
 
     @Test
-    public void testAddItemWhenNonExistentUserIdThenThrowException() {
-        when(userService.findUserById(1L)).thenThrow(new RuntimeException("User not found"));
+    public void testAddItemWhenValidUserIdAndItemDtoThenReturnItemDto() {
+        when(userService.findUserById(userId)).thenReturn(userDto);
+        when(itemMapper.toModel(itemDto)).thenReturn(item);
+        when(userMapper.fromUserDto(userDto)).thenReturn(new User());
+        when(itemStorage.save(item)).thenReturn(item);
+        when(itemMapper.toDto(item)).thenReturn(itemDto);
 
-        assertThrows(RuntimeException.class, () -> itemService.addItem(1L, itemDto));
+        ItemDto result = itemService.addItem(userId, itemDto);
+
+        assertEquals(itemDto, result);
     }
 
     @Test
-    public void testAddItemWhenNullItemDtoThenThrowException() {
-        when(userService.findUserById(1L)).thenReturn(userDto);
+    public void testAddItemWhenInvalidUserIdThenThrowException() {
+        when(userService.findUserById(userId)).thenThrow(new RuntimeException());
 
-        assertThrows(NullPointerException.class, () -> itemService.addItem(1L, null));
+        assertThrows(RuntimeException.class, () -> itemService.addItem(userId, itemDto));
+    }
+
+    @Test
+    public void testAddItemWhenItemDtoHasRequestIdThenSetRequestAndReturnSavedItemDto() {
+        Long requestId = 1L;
+        itemDto.setRequestId(requestId);
+        ItemRequest itemRequest = new ItemRequest();
+
+        when(userService.findUserById(userId)).thenReturn(userDto);
+        when(itemMapper.toModel(any(ItemDto.class))).thenReturn(item);
+        when(userMapper.fromUserDto(any(UserDto.class))).thenReturn(new User());
+        when(itemRequestService.getPureItemRequestById(requestId)).thenReturn(itemRequest);
+        when(itemStorage.save(any(Item.class))).thenReturn(item);
+        when(itemMapper.toDto(any(Item.class))).thenReturn(itemDto);
+
+        ItemDto result = itemService.addItem(userId, itemDto);
+
+        assertEquals(itemDto, result);
+
+        // Capture the item passed to save method
+        verify(itemStorage).save(itemCaptor.capture());
+        Item capturedItem = itemCaptor.getValue();
+
+        // Assert that the item request was set correctly
+        assertEquals(itemRequest, capturedItem.getRequest());
+    }
+
+    @Test
+    public void testAddItemWhenFindUserByIdThrowsExceptionThenThrowException() {
+        when(userService.findUserById(userId)).thenThrow(new RuntimeException());
+
+        assertThrows(RuntimeException.class, () -> itemService.addItem(userId, itemDto));
+    }
+
+    @Test
+    public void testAddItemWhenSaveThrowsExceptionThenThrowException() {
+        when(userService.findUserById(userId)).thenReturn(userDto);
+        when(itemMapper.toModel(itemDto)).thenReturn(item);
+        when(userMapper.fromUserDto(userDto)).thenReturn(new User());
+        when(itemStorage.save(item)).thenThrow(new RuntimeException());
+
+        assertThrows(RuntimeException.class, () -> itemService.addItem(userId, itemDto));
     }
 }

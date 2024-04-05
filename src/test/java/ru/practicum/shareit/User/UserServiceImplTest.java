@@ -9,17 +9,21 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.notNullValue;
 
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserUpdateDto;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.service.UserService;
+import ru.practicum.shareit.user.service.impl.UserServiceImpl;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @ExtendWith(SpringExtension.class)
@@ -29,7 +33,7 @@ import static org.hamcrest.Matchers.*;
 class UserServiceImplTest {
 
     @Autowired
-    private UserService userService;
+    private UserServiceImpl userService;
 
     private UserCreateDto userCreateDto;
     private UserUpdateDto updateDto;
@@ -157,6 +161,34 @@ class UserServiceImplTest {
         assertThat(foundUser.getId(), is(savedUser.getId()));
         assertThat(foundUser.getName(), is(savedUser.getName()));
         assertThat(foundUser.getEmail(), is(savedUser.getEmail()));
+    }
+
+    @Test
+    void getPureUserById_WhenUserNotFound_ShouldThrowException() {
+        Exception exception = assertThrows(Exception.class, () -> userService.getPureUserById(999L));
+        assertThat(exception.getMessage(), containsString("Пользователь с ID 999 не найден"));
+    }
+
+    @Test
+    void deleteUserById_WhenUserNotFound_ShouldThrowException() {
+        Exception exception = assertThrows(Exception.class, () -> userService.deleteUserById(999L));
+        assertThat(exception.getMessage(), containsString("Пользователь с ID 999 не найден"));
+    }
+
+    @Test
+    void findUserById_WhenUserNotFound_ShouldThrowException() {
+        Exception exception = assertThrows(Exception.class, () -> userService.findUserById(999L));
+        assertThat(exception.getMessage(), containsString("Пользователь с ID 999 не найден"));
+    }
+
+    @Test
+    void updateUser_WhenUserNotFound_ShouldThrowException() {
+        UserUpdateDto updateDto = new UserUpdateDto();
+        updateDto.setName("Updated Name");
+        updateDto.setEmail("updated@example.com");
+
+        Exception exception = assertThrows(Exception.class, () -> userService.updateUser(999L, updateDto));
+        assertThat(exception.getMessage(), containsString("Пользователь с ID 999 не найден"));
     }
 
 }

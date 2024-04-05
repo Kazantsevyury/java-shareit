@@ -88,17 +88,28 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public GetItemDto findItemById(final Long userId, final Long itemId) {
         final Item item =  getPureItemById(itemId);
+        if (item == null) {
+            throw new RuntimeException("Item not found");
+        }
+
         List<Booking> itemBookings = bookingService.findAllByItemId(itemId);
+        if (itemBookings == null) {
+            itemBookings = new ArrayList<>();
+        }
+
         GetItemDto itemWithBookingDatesDto;
         if (item.getOwner().getId().equals(userId)) {
             itemWithBookingDatesDto = getItemWithBookings(item, itemBookings);
         } else {
             itemWithBookingDatesDto = itemMapper.toWithBookingsDto(item);
         }
+
         List<Comment> comments = commentStorage.findAllByItemId(item.getId());
         itemWithBookingDatesDto.getComments().addAll(commentMapper.toDtoList(comments));
+
         return itemWithBookingDatesDto;
     }
+
 
     @Override
     public List<GetItemDto> getItemsWithBookingsAndComments(List<Item> items, List<Booking> bookings, List<Comment> itemsComments) {
