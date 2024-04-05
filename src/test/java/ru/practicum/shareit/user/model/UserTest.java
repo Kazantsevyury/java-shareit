@@ -1,9 +1,8 @@
-package ru.practicum.shareit.User;
+package ru.practicum.shareit.user.model;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
 

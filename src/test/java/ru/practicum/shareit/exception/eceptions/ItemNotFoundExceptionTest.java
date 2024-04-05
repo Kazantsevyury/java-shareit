@@ -1,4 +1,4 @@
-package ru.practicum.shareit.exception;
+package ru.practicum.shareit.exception.eceptions;
 
 import org.junit.jupiter.api.Test;
 import ru.practicum.shareit.exception.exceptions.ItemNotFoundException;

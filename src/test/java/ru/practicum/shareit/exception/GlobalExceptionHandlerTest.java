@@ -30,6 +30,7 @@ import ru.practicum.shareit.item.ItemBookingFacade;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.request.ItemRequestService;
 import ru.practicum.shareit.user.dto.UserCreateDto;
+import ru.practicum.shareit.user.dto.UserUpdateDto;
 import ru.practicum.shareit.user.service.UserService;
 import ru.practicum.shareit.exception.exceptions.*;
 
@@ -125,6 +126,31 @@ public class GlobalExceptionHandlerTest {
                         .content(new ObjectMapper().writeValueAsString(itemUpdateDto)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Not the item owner"))
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void whenBadRequestException_thenRespondWith400() throws Exception {
+        given(userService.updateUser(anyLong(), any(UserUpdateDto.class)))
+                .willThrow(new CustomBadRequestException("Bad request"));
+
+        mockMvc.perform(patch("/users/{id}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(new UserUpdateDto())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Bad request"))
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void whenBookingOwnershipException_thenRespondWith404() throws Exception {
+        given(bookingService.getBookingByIdAndUserId(anyLong(), anyLong()))
+                .willThrow(new BookingOwnershipException("Not the booking owner"));
+
+        mockMvc.perform(get("/bookings/{id}", 1L)
+                        .header("X-Sharer-User-Id", 2L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Not the booking owner"))
                 .andExpect(jsonPath("$.status").value(404));
     }
 
