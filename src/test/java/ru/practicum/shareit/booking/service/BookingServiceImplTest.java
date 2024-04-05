@@ -1,4 +1,4 @@
-package ru.practicum.shareit.booking;
+package ru.practicum.shareit.booking.service;
 
 
 import org.junit.jupiter.api.BeforeEach;
@@ -9,7 +9,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Pageable;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.service.BookingServiceImpl;
+import ru.practicum.shareit.booking.service.impl.BookingServiceImpl;
 import ru.practicum.shareit.booking.storage.BookingStorage;
 import ru.practicum.shareit.exception.exceptions.BookingNotFoundException;
 import ru.practicum.shareit.exception.exceptions.ItemRequestNotFoundException;
