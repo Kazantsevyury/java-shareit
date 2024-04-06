@@ -25,7 +25,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     public ItemRequestDto addNewItemRequest(final Long userId, final AddItemRequestDto addItemRequestDto) {
         userService.findUserById(userId);
         var requester = userService.getPureUserById(userId);
-
         final ItemRequest itemRequest = itemRequestMapper.toModel(addItemRequestDto);
         itemRequest.setRequester(requester);
         final ItemRequest savedRequest = itemRequestStorage.save(itemRequest);
@@ -37,7 +36,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         userService.findUserById(userId);
         final List<ItemRequest> requests = itemRequestStorage.findRequestsFromUser(userId);
         List<ItemRequestDto> requestDtos = itemRequestMapper.toDtoList(requests);
-
         for (ItemRequestDto requestDto : requestDtos) {
             if (requestDto.getItems() != null) {
                 for (ItemDto itemDto : requestDto.getItems()) {
@@ -54,7 +52,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         userService.findUserById(userId);
         int page = (int) (offset / size);
         Pageable pageable = PageRequest.of(page, size, Sort.unsorted());
-
         final Page<ItemRequest> requests = itemRequestStorage.findAvailableRequests(userId, pageable);
         return itemRequestMapper.toDtoList(requests.getContent());
     }
