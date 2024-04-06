@@ -1,14 +1,6 @@
 package ru.practicum.shareit.exception;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,22 +9,26 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import ru.practicum.shareit.booking.BookingController;
+import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.exception.exceptions.*;
+import ru.practicum.shareit.item.ItemBookingFacade;
 import ru.practicum.shareit.item.ItemController;
 import ru.practicum.shareit.item.dto.ItemUpdateDto;
-import ru.practicum.shareit.request.ItemRequestController;
-import ru.practicum.shareit.user.UserController;
-import ru.practicum.shareit.booking.service.BookingService;
-import ru.practicum.shareit.item.ItemBookingFacade;
 import ru.practicum.shareit.item.service.ItemService;
+import ru.practicum.shareit.request.ItemRequestController;
 import ru.practicum.shareit.request.ItemRequestService;
+import ru.practicum.shareit.user.UserController;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserUpdateDto;
 import ru.practicum.shareit.user.service.UserService;
-import ru.practicum.shareit.exception.exceptions.*;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(controllers = {BookingController.class, ItemController.class, ItemRequestController.class, UserController.class})
@@ -153,5 +149,4 @@ public class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error").value("Not the booking owner"))
                 .andExpect(jsonPath("$.status").value(404));
     }
-
 }

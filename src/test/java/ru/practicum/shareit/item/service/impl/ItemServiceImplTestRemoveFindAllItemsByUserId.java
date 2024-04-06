@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ItemServiceImplTest {
+public class ItemServiceImplTestRemoveFindAllItemsByUserId {
 
     @Mock
     private ItemStorage itemStorage;

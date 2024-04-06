@@ -29,6 +29,7 @@ public class GetItemDto {
     private ShortBookingDto nextBooking;
 
     private final List<CommentDto> comments = new ArrayList<>();
+
 }
 
 
