@@ -99,10 +99,11 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         return bookingMapper.toDto(booking);
     }
 
+
     @Override
     public BookingDto getBookingById(final Long userId, final Long bookingId) {
         userService.findUserById(userId);
-        final Booking booking = bookingService.findBooking(bookingId);
+        Booking booking = bookingService.findBooking(bookingId);
         if (booking.getBooker().getId().equals(userId) || booking.getItem().getOwner().getId().equals(userId)) {
             return bookingMapper.toDto(booking);
         } else {
@@ -124,19 +125,19 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         return bookingMapper.toDtoList(Lists.newArrayList(result));
     }
 
-    private Iterable<Booking> getBookingFromOwner(Long userId, GetBookingState state, Long from, Integer size, Iterable<Booking> result) {
+    public Iterable<Booking> getBookingFromOwner(Long userId, GetBookingState state, Long from, Integer size, Iterable<Booking> result) {
         OffsetPageRequest pageRequest = OffsetPageRequest.of(from, size);
         result = getAllSortedBookingsFromUser(state, result, userId, pageRequest);
         return result;
     }
 
-    private Iterable<Booking> getBookingFromUser(Long userId, GetBookingState state, Long from, Integer size, Iterable<Booking> result) {
+    public Iterable<Booking> getBookingFromUser(Long userId, GetBookingState state, Long from, Integer size, Iterable<Booking> result) {
         OffsetPageRequest pageRequest = OffsetPageRequest.of(from, size);
         result = getAllSortedBookingsFromBooker(state, result, userId, pageRequest);
         return result;
     }
 
-     private Iterable<Booking> getAllSortedBookingsFromBooker(final GetBookingState state, Iterable<Booking> result,
+    public Iterable<Booking> getAllSortedBookingsFromBooker(final GetBookingState state, Iterable<Booking> result,
                                                              final Long bookerId, Pageable pageable) {
         switch (state) {
             case ALL:
@@ -162,7 +163,7 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         return result;
     }
 
-     private Iterable<Booking> getAllSortedBookingsFromUser(final GetBookingState state, Iterable<Booking> result,
+    public Iterable<Booking> getAllSortedBookingsFromUser(final GetBookingState state, Iterable<Booking> result,
                                                            final Long userId, Pageable pageable) {
         switch (state) {
             case ALL:
@@ -206,7 +207,7 @@ public class ItemBookingFacadeImpl implements ItemBookingFacade {
         return commentMapper.toCommentDto(savedComment);
     }
 
-    private void checkIfUserCanAddComments(Long userId, Long itemId, List<Booking> bookings) {
+    public void checkIfUserCanAddComments(Long userId, Long itemId, List<Booking> bookings) {
         boolean isAbleToAddComment = bookings.stream()
                 .anyMatch(booking -> booking.getBooker().getId().equals(userId) && booking.getEnd().isBefore(LocalDateTime.now())
                         && booking.getStatus().equals(BookingStatus.APPROVED));

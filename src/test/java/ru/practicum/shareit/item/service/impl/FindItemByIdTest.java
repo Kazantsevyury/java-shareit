@@ -12,11 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import ru.practicum.shareit.OffsetPageRequest;
 import ru.practicum.shareit.booking.BookingMapper;
@@ -193,5 +190,40 @@ class FindItemByIdTest {
 
 
     }
+    @Test
+    void findItemById_ShouldThrowRuntimeException_WhenItemNotFound() {
+        // Arrange
+        Long itemId = 1L; // ID элемента, который не существует в базе
+        when(itemStorage.findById(itemId)).thenReturn(Optional.empty()); // Моделируем отсутствие элемента
 
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> itemService.findItemById(1L, itemId),
+                "Item not found"); // Проверяем, что метод выкидывает исключение
+    }
+
+
+    @Test
+    void findItemById_WhenRequesterIsNotOwner_ShouldReturnItemWithoutBookingDates() {
+        // Arrange
+        Long ownerId = 1L;
+        Long requesterId = 2L;
+        Long itemId = 3L;
+
+        Item item = new Item();
+        item.setId(itemId);
+        item.setOwner(new User(ownerId, "Owner Name", "owner@example.com"));
+
+        when(itemStorage.findById(itemId)).thenReturn(Optional.of(item));
+        when(bookingService.findAllByItemId(itemId)).thenReturn(List.of());
+        GetItemDto expectedDto = new GetItemDto();
+        when(itemMapper.toWithBookingsDto(item)).thenReturn(expectedDto);
+
+        // Act
+        GetItemDto resultDto = itemService.findItemById(requesterId, itemId);
+
+        // Assert
+        assertEquals(expectedDto, resultDto);
+        verify(itemMapper).toWithBookingsDto(item);
+        verify(itemMapper, never()).toGetItemDto(any(), any(), any());
+    }
 }

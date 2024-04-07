@@ -1,5 +1,7 @@
 package ru.practicum.shareit.item;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -16,6 +18,7 @@ import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.impl.BookingServiceImpl;
 import ru.practicum.shareit.exception.exceptions.BookingOwnershipException;
+import ru.practicum.shareit.exception.exceptions.ItemUnavailableException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.model.Item;
@@ -28,12 +31,13 @@ import ru.practicum.shareit.user.service.UserService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -206,9 +210,6 @@ class ItemBookingFacadeImplTest {
         assertEquals(expectedBookingDtoList, resultBookingDtoList);
     }
 
-
-
-
     @Test
     void testAcknowledgeBookingWhenNotOwnerThenBookingOwnershipException() {
         // Arrange
@@ -221,5 +222,177 @@ class ItemBookingFacadeImplTest {
 
         // Act & Assert
         assertThrows(BookingOwnershipException.class, () -> itemBookingFacade.acknowledgeBooking(userId, bookingId, approved));
+    }
+
+    @Test
+    void testAcknowledgeBookingWhenItemNotWaitingThenThrowException() {
+        // Arrange
+        Long userId = 1L;
+        Long bookingId = 1L;
+        Boolean approved = true;
+
+        User owner = User.builder().id(userId).build();
+        Item item = Item.builder().id(1L).owner(owner).build();
+        Booking booking = Booking.builder()
+                .id(bookingId)
+                .item(item)
+                .booker(owner)
+                .status(BookingStatus.APPROVED)  // Status is not WAITING
+                .build();
+
+        when(userService.findUserById(userId)).thenReturn(new UserDto());
+        when(bookingService.findBooking(bookingId)).thenReturn(booking);
+
+        // Act & Assert
+        assertThrows(ItemUnavailableException.class, () -> {
+            itemBookingFacade.acknowledgeBooking(userId, bookingId, approved);
+        });
+
+        // Verify
+        verify(userService).findUserById(userId);
+        verify(bookingService).findBooking(bookingId);
+        verifyNoMoreInteractions(bookingMapper);  // Ensure no mapping occurs since exception is thrown
+    }
+
+    @Test
+    void testAcknowledgeBookingApprovesBooking() {
+        // Arrange
+        Long userId = 1L;
+        Long bookingId = 1L;
+        Boolean approved = true;
+
+        User owner = User.builder().id(userId).build();
+        Item item = Item.builder().id(1L).owner(owner).build();
+        Booking booking = Booking.builder()
+                .id(bookingId)
+                .item(item)
+                .booker(owner)
+                .status(BookingStatus.WAITING)
+                .build();
+
+        BookingDto expectedDto = new BookingDto(); // Assuming you have a corresponding DTO setup
+        when(userService.findUserById(userId)).thenReturn(new UserDto());
+        when(bookingService.findBooking(bookingId)).thenReturn(booking);
+        when(bookingMapper.toDto(booking)).thenReturn(expectedDto);
+
+        // Act
+        BookingDto resultDto = itemBookingFacade.acknowledgeBooking(userId, bookingId, approved);
+
+        // Assert
+        assertEquals(BookingStatus.APPROVED, booking.getStatus(), "Booking status should be APPROVED");
+        assertNotNull(resultDto, "Returned BookingDto should not be null");
+        assertSame(expectedDto, resultDto, "Returned DTO should match the expected DTO");
+
+        // Verify
+        verify(bookingMapper).toDto(booking);
+        verify(userService).findUserById(userId);
+        verify(bookingService).findBooking(bookingId);
+    }
+
+    @Test
+    void testAcknowledgeBookingRejectsBooking() {
+        // Arrange
+        Long userId = 1L;
+        Long bookingId = 1L;
+        Boolean approved = false;
+
+        User owner = User.builder().id(userId).build();
+        Item item = Item.builder().id(1L).owner(owner).build();
+        Booking booking = Booking.builder()
+                .id(bookingId)
+                .item(item)
+                .booker(owner)
+                .status(BookingStatus.WAITING)
+                .build();
+
+        BookingDto expectedDto = new BookingDto(); // Assuming you have a corresponding DTO setup
+        when(userService.findUserById(userId)).thenReturn(new UserDto());
+        when(bookingService.findBooking(bookingId)).thenReturn(booking);
+        when(bookingMapper.toDto(booking)).thenReturn(expectedDto);
+
+        // Act
+        BookingDto resultDto = itemBookingFacade.acknowledgeBooking(userId, bookingId, approved);
+
+        // Assert
+        assertEquals(BookingStatus.REJECTED, booking.getStatus(), "Booking status should be REJECTED");
+        assertNotNull(resultDto, "Returned BookingDto should not be null");
+        assertSame(expectedDto, resultDto, "Returned DTO should match the expected DTO");
+
+        // Verify
+        verify(bookingMapper).toDto(booking);
+        verify(userService).findUserById(userId);
+        verify(bookingService).findBooking(bookingId);
+    }
+    @Test
+    void testReturnBookingDtoFromAcknowledgeBooking() {
+        // Arrange
+        Long userId = 1L;
+        Long bookingId = 1L;
+        Boolean approved = true; // or false, doesn't matter for this test
+
+        User owner = User.builder().id(userId).build();
+        Item item = Item.builder().id(1L).owner(owner).build();
+        Booking booking = Booking.builder()
+                .id(bookingId)
+                .item(item)
+                .booker(owner)
+                .status(BookingStatus.WAITING)
+                .build();
+        BookingDto expectedDto = new BookingDto(); // Assuming you have a corresponding DTO setup
+
+        when(userService.findUserById(userId)).thenReturn(new UserDto());
+        when(bookingService.findBooking(bookingId)).thenReturn(booking);
+        when(bookingMapper.toDto(booking)).thenReturn(expectedDto);
+
+        // Act
+        BookingDto resultDto = itemBookingFacade.acknowledgeBooking(userId, bookingId, approved);
+
+        // Assert
+        assertSame(expectedDto, resultDto, "Returned DTO should match the expected DTO");
+
+        // Verify
+        verify(bookingMapper).toDto(booking);
+        verifyNoMoreInteractions(bookingMapper);
+    }
+
+
+    @Test
+    void testGetBookingFromUser() {
+        // Arrange
+        Long userId = 1L;
+        GetBookingState state = GetBookingState.ALL;
+        Long from = 0L;
+        Integer size = 10;
+        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
+
+        when(bookingService.findAllByBookerId(eq(userId), any(Pageable.class))).thenReturn(expectedBookings);
+
+        // Act
+        Iterable<Booking> result = itemBookingFacade.getBookingFromUser(userId, state, from, size, new ArrayList<>());
+
+        // Assert
+        assertIterableEquals(expectedBookings, result, "The returned bookings should match the expected list.");
+
+        // Verify
+        verify(bookingService).findAllByBookerId(eq(userId), any(Pageable.class));
+    }
+
+    @Test
+    void testGetAllSortedBookingsFromBooker() {
+        // Arrange
+        Long userId = 1L;
+        GetBookingState state = GetBookingState.ALL;
+        Long from = 0L;
+        Integer size = 10;
+        Iterable<Booking> initialResult = Collections.emptyList();
+        Pageable pageable = PageRequest.of(Math.toIntExact(from), size);
+
+        // Act
+        when(bookingService.findAllByBookerId(eq(userId), eq(pageable))).thenReturn(initialResult);
+        Iterable<Booking> result = itemBookingFacade.getAllSortedBookingsFromBooker(state, initialResult, userId, pageable);
+
+        // Assert
+        assertSame(initialResult, result);
+        verify(bookingService).findAllByBookerId(eq(userId), eq(pageable));
     }
 }
