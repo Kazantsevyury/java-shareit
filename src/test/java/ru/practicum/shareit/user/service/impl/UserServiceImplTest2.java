@@ -1,10 +1,7 @@
 package ru.practicum.shareit.user.service.impl;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -17,16 +14,11 @@ import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserUpdateDto;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.service.UserService;
 
-import java.util.List;
 import java.util.Optional;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.*;
@@ -34,12 +26,12 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest2 {
 
-
     @Mock
     private UserStorage userStorage;
-
     @Mock
     private ExceptionFactory exceptionFactory;
+    @Mock
+    private UserMapper userMapper;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -66,7 +58,6 @@ class UserServiceImplTest2 {
         verify(userStorage).save(any(User.class));
     }
 
-
     @Test
     public void testAddUserWithDuplicateEmailThrowsException() {
         // Подготовка
@@ -88,136 +79,195 @@ class UserServiceImplTest2 {
         verify(userStorage).findByEmail("duplicate@example.com");
     }
 
-/*
     @Test
-    void updateUser_UserFoundAndNameNotNullEmailNotNull_ShouldUpdateNameAndEmail() {
-        when(userStorage.findById(userId))
-                .thenReturn(Optional.of(user));
+    public void testUpdateUserWithValidData() {
+        // Подготовка данных
+        Long userId = 1L;
+        UserUpdateDto userUpdateDto = UserUpdateDto.builder()
+                .name("Updated Name")
+                .email("updated@example.com")
+                .build();
+        User existingUser = User.builder()
+                .id(userId)
+                .name("Original Name")
+                .email("original@example.com")
+                .build();
 
-        userService.updateUser(userId, updateDto);
+        // Настройка моков
+        when(userStorage.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(userStorage.findByEmail("updated@example.com")).thenReturn(Optional.empty());
+        when(userStorage.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        verify(userStorage).save(userArgumentCaptor.capture());
-        User savedUser = userArgumentCaptor.getValue();
+        // Выполнение теста
+        UserDto result = userService.updateUser(userId, userUpdateDto);
 
-        assertThat(savedUser.getName(), is(updateDto.getName()));
-        assertThat(savedUser.getEmail(), is(updateDto.getEmail()));
+        // Проверки
+        assertNotNull(result);
+        assertEquals("Updated Name", result.getName());
+        assertEquals("updated@example.com", result.getEmail());
 
-        verify(userStorage, times(1)).findById(userId);
-        verify(userStorage, times(1)).save(savedUser);
-        verify(userMapper, times(1)).toUserDto(savedUser);
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).findById(userId);
+        verify(userStorage).findByEmail("updated@example.com");
+        verify(userStorage).save(any(User.class));
     }
 
     @Test
-    void updateUser_UserNotFound_ShouldThrowNotFoundException() {
-        when(userStorage.findById(userId))
-                .thenReturn(Optional.empty());
+    public void testUpdateNonExistentUserThrowsException() {
+        // Подготовка данных
+        Long userId = 1L;
+        UserUpdateDto userUpdateDto = UserUpdateDto.builder()
+                .name("Updated Name")
+                .email("updated@example.com")
+                .build();
 
-        UserNotFoundException e = assertThrows(UserNotFoundException.class,
-                () -> userService.updateUser(userId, updateDto));
-        assertThat(e.getMessage(), is("Пользователь с ID " + userId + "' не найден."));
+        // Настройка моков
+        when(userStorage.findById(userId)).thenReturn(Optional.empty());
 
-        verify(userStorage, times(1)).findById(userId);
-        verify(userStorage, never()).save(any());
-        verify(userMapper, never()).toUserDto(any());
+        // Ожидаемое исключение
+        Exception exception = assertThrows(UserNotFoundException.class, () -> {
+            userService.updateUser(userId, userUpdateDto);
+        });
+
+        // Проверка сообщения исключения
+        assertEquals("Пользователь с ID " + userId + " не найден", exception.getMessage());
+
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).findById(userId);
+        verify(userStorage, never()).findByEmail(anyString());
+        verify(userStorage, never()).save(any(User.class));
     }
 
     @Test
-    void updateUser_UserFoundAndNameNullEmailNotNull_ShouldUpdateOnlyEmail() {
-        updateDto.setName(null);
-        when(userStorage.findById(userId))
-                .thenReturn(Optional.of(user));
+    public void testUpdateUserWithEmailNull() {
+        Long userId = 1L;
+        UserUpdateDto userUpdateDto = UserUpdateDto.builder()
+                .name("Updated Name")
+                .email(null)
+                .build();
+        User existingUser = User.builder()
+                .id(userId)
+                .name("Original Name")
+                .email("original@example.com")
+                .build();
 
-        userService.updateUser(userId, updateDto);
+        when(userStorage.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(userStorage.save(any(User.class))).thenReturn(existingUser);
 
-        verify(userStorage).save(userArgumentCaptor.capture());
-        User savedUser = userArgumentCaptor.getValue();
+        UserDto result = userService.updateUser(userId, userUpdateDto);
 
-        assertThat(savedUser.getName(), is(user.getName()));
-        assertThat(savedUser.getEmail(), is(updateDto.getEmail()));
+        assertNotNull(result);
+        assertEquals("Updated Name", result.getName());
+        assertEquals("original@example.com", result.getEmail());
 
-        verify(userStorage, times(1)).findById(userId);
-        verify(userStorage, times(1)).save(savedUser);
-        verify(userMapper, times(1)).toUserDto(savedUser);
+        verify(userStorage).save(any(User.class));
     }
 
     @Test
-    void updateUser_UserFoundAndNameNotNullEmailNull_ShouldUpdateOnlyName() {
-        updateDto.setEmail(null);
-        when(userStorage.findById(userId))
-                .thenReturn(Optional.of(user));
+    public void testUpdateUserWithEmailEmpty() {
+        // Подготовка данных
+        Long userId = 1L;
+        UserUpdateDto userUpdateDto = UserUpdateDto.builder()
+                .name("Updated Name")
+                .build();
+        User existingUser = User.builder()
+                .id(userId)
+                .name("Original Name")
+                .email("original@example.com")
+                .build();
 
-        userService.updateUser(userId, updateDto);
+        // Настройка моков
+        when(userStorage.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(userStorage.save(existingUser)).thenReturn(existingUser);
 
-        verify(userStorage).save(userArgumentCaptor.capture());
-        User savedUser = userArgumentCaptor.getValue();
+        // Выполнение теста
+        UserDto result = userService.updateUser(userId, userUpdateDto);
 
-        assertThat(savedUser.getName(), is(updateDto.getName()));
-        assertThat(savedUser.getEmail(), is(user.getEmail()));
+        // Проверки
+        assertNotNull(result);
+        assertEquals("Updated Name", result.getName());
+        assertEquals("original@example.com", result.getEmail());
 
-        verify(userStorage, times(1)).findById(userId);
-        verify(userStorage, times(1)).save(savedUser);
-        verify(userMapper, times(1)).toDto(savedUser);
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).findById(userId);
+        verify(userStorage).save(existingUser);
     }
 
     @Test
-    void updateUser_UserFoundAndNameNullEmailNull_ShouldNotUpdateAnyFields() {
-        updateDto.setEmail(null);
-        updateDto.setName(null);
-        when(userStorage.findById(userId))
-                .thenReturn(Optional.of(user));
+    public void testUpdateUserWithExistingEmailThrowsException() {
+        // Подготовка данных
+        Long userId = 1L;
+        UserUpdateDto userUpdateDto = UserUpdateDto.builder()
+                .name("Updated Name")
+                .email("usedemail@example.com")
+                .build();
+        User existingUser = User.builder()
+                .id(userId)
+                .name("Original Name")
+                .email("original@example.com")
+                .build();
+        User anotherUserWithSameEmail = User.builder()
+                .id(2L)
+                .name("Another Name")
+                .email("usedemail@example.com")
+                .build();
 
-        userService.updateUser(userId, updateDto);
+        // Настройка моков
+        when(userStorage.findById(eq(userId))).thenReturn(Optional.of(existingUser));
+        when(userStorage.findByEmail(eq("usedemail@example.com"))).thenReturn(Optional.of(anotherUserWithSameEmail));
 
-        verify(userStorage).save(userArgumentCaptor.capture());
-        User savedUser = userArgumentCaptor.getValue();
+        // Вызов метода и проверка выброса исключения
+        Exception exception = assertThrows(EntityAlreadyExistsException.class, () -> userService.updateUser(userId, userUpdateDto));
 
-        assertThat(savedUser.getName(), is(user.getName()));
-        assertThat(savedUser.getEmail(), is(user.getEmail()));
+        // Проверка сообщения исключения
+        assertEquals("Email уже используется другим пользователем.", exception.getMessage());
 
-        verify(userStorage, times(1)).findById(userId);
-        verify(userStorage, times(1)).save(savedUser);
-        verify(userMapper, times(1)).toDto(savedUser);
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).findById(userId);
+        verify(userStorage).findByEmail("usedemail@example.com");
     }
 
     @Test
-    void findUserById_UserFound_ShouldReturnDto() {
-        when(userStorage.findById(userId))
-                .thenReturn(Optional.of(user));
+    public void testFindUserByIdWithValidId() {
+        // Подготовка данных
+        Long userId = 1L;
+        User user = new User();
+        user.setId(userId);
+        user.setName("Test User");
+        user.setEmail("test@example.com");
 
-        userService.findUserById(userId);
+        // Настройка моков
+        when(userStorage.findById(userId)).thenReturn(Optional.of(user));
 
-        verify(userStorage, times(1)).findById(userId);
-        verify(userMapper, times(1)).toDto(user);
+        // Выполнение теста
+        UserDto result = userService.findUserById(userId);
+
+        // Проверки
+        assertNotNull(result);
+        assertEquals(userId, result.getId());
+        assertEquals("Test User", result.getName());
+        assertEquals("test@example.com", result.getEmail());
+
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).findById(userId);
     }
 
     @Test
-    void findUserById_UserNotFound_ShouldThrowNotFoundException() {
-        when(userStorage.findById(userId))
-                .thenReturn(Optional.empty());
+    public void testFindUserByIdWithInvalidIdThrowsException() {
+        // Подготовка данных
+        Long userId = 1L;
 
-        NotFoundException e = assertThrows(NotFoundException.class,
-                () -> userService.findUserById(userId));
-        assertThat(e.getMessage(), is("Пользователь с id '" + userId + "' не найден."));
+        // Настройка моков
+        when(userStorage.findById(userId)).thenReturn(Optional.empty());
 
-        verify(userStorage, times(1)).findById(userId);
-        verify(userMapper, never()).toDto(user);
+        // Ожидаемое исключение
+        Exception exception = assertThrows(UserNotFoundException.class, () -> userService.findUserById(userId));
+
+        // Проверка сообщения исключения
+        assertEquals("Пользователь с ID " + userId + " не найден", exception.getMessage());
+
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).findById(userId);
     }
 
-    @Test
-    void findAllUsers_ShouldReturnList() {
-        when(userStorage.findAll())
-                .thenReturn(List.of(user));
-
-        userService.findAllUsers();
-
-        verify(userStorage, times(1)).findAll();
-        verify(userMapper, times(1)).toDtoList(List.of(user));
-    }
-
-    @Test
-    void deleteUserById() {
-        userService.deleteUserById(userId);
-
-        verify(userStorage, times(1)).deleteById(userId);
-    } */
 }
