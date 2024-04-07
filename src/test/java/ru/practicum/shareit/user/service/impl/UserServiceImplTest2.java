@@ -15,6 +15,9 @@ import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserUpdateDto;
 import ru.practicum.shareit.user.model.User;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest2 {
 
@@ -262,6 +266,111 @@ class UserServiceImplTest2 {
 
         // Ожидаемое исключение
         Exception exception = assertThrows(UserNotFoundException.class, () -> userService.findUserById(userId));
+
+        // Проверка сообщения исключения
+        assertEquals("Пользователь с ID " + userId + " не найден", exception.getMessage());
+
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).findById(userId);
+    }
+
+    @Test
+    public void testFindAllUsersWithValidData() {
+        // Подготовка данных
+        User user1 = User.builder().id(1L).name("User One").email("user1@example.com").build();
+        User user2 = User.builder().id(2L).name("User Two").email("user2@example.com").build();
+        List<User> users = Arrays.asList(user1, user2);
+
+        // Настройка моков
+        when(userStorage.findAll()).thenReturn(users);
+
+        // Выполнение теста
+        Collection<UserDto> results = userService.findAllUsers();
+
+        // Проверки
+        assertNotNull(results);
+        assertEquals(2, results.size());
+        assertTrue(results.stream().anyMatch(user -> user.getId().equals(1L) && user.getName().equals("User One")));
+        assertTrue(results.stream().anyMatch(user -> user.getId().equals(2L) && user.getName().equals("User Two")));
+
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).findAll();
+    }
+
+    @Test
+    public void testDeleteUserByIdWithValidData() {
+        // Подготовка данных
+        Long userId = 1L;
+
+        // Настройка моков
+        when(userStorage.existsById(userId)).thenReturn(true);
+
+        // Выполнение теста
+        userService.deleteUserById(userId);
+
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).existsById(userId);
+        verify(userStorage).deleteById(userId);
+    }
+
+    @Test
+    public void testDeleteUserByIdThrowsUserNotFoundException() {
+        // Подготовка данных
+        Long userId = 1L;
+
+        // Настройка моков
+        when(userStorage.existsById(userId)).thenReturn(false);
+
+        // Ожидаемое исключение
+        Exception exception = assertThrows(UserNotFoundException.class, () -> {
+            userService.deleteUserById(userId);
+        });
+
+        // Проверка сообщения исключения
+        assertEquals("Пользователь с ID " + userId + " не найден", exception.getMessage());
+
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).existsById(userId);
+        verify(userStorage, never()).deleteById(userId);
+    }
+
+    @Test
+    public void testGetPureUserByIdWithValidData() {
+        // Подготовка данных
+        Long userId = 1L;
+        User expectedUser = new User();
+        expectedUser.setId(userId);
+        expectedUser.setName("Test User");
+        expectedUser.setEmail("test@example.com");
+
+        // Настройка моков
+        when(userStorage.findById(userId)).thenReturn(Optional.of(expectedUser));
+
+        // Выполнение теста
+        User actualUser = userService.getPureUserById(userId);
+
+        // Проверки
+        assertNotNull(actualUser);
+        assertEquals(expectedUser.getId(), actualUser.getId());
+        assertEquals(expectedUser.getName(), actualUser.getName());
+        assertEquals(expectedUser.getEmail(), actualUser.getEmail());
+
+        // Подтверждение взаимодействия с моками
+        verify(userStorage).findById(userId);
+    }
+
+    @Test
+    public void testGetPureUserByIdThrowsUserNotFoundException() {
+        // Подготовка данных
+        Long userId = 1L;
+
+        // Настройка моков
+        when(userStorage.findById(userId)).thenReturn(Optional.empty());
+
+        // Ожидаемое исключение
+        Exception exception = assertThrows(UserNotFoundException.class, () -> {
+            userService.getPureUserById(userId);
+        });
 
         // Проверка сообщения исключения
         assertEquals("Пользователь с ID " + userId + " не найден", exception.getMessage());
