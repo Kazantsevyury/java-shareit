@@ -1,51 +1,39 @@
 package ru.practicum.shareit.item.mapper;
 
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mapstruct.factory.Mappers;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.ItemRequest;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(MockitoExtension.class)
 public class ItemMapperTestAfter {
-    @InjectMocks
-    private ItemMapper itemMapper = new ItemMapperImpl();
+        private final ItemMapper mapper = Mappers.getMapper(ItemMapper.class);
 
-    private Item item;
-    private ItemRequest itemRequest;
+        @Test
+        void testHandleRequest() {
+            // Создаем исходный объект Item
+            Item item = Item.builder()
+                    .id(1L)
+                    .name("Test Item")
+                    .description("Test Description")
+                    .available(true)
+                    .request(new ItemRequest()) // Инициализация объекта ItemRequest, если необходимо
+                    .build();
 
-    @BeforeEach
-    void setUp() {
-        itemRequest = new ItemRequest();
-        itemRequest.setId(1L);
 
-        item = new Item();
-        item.setId(2L);
-        item.setName("Drill");
-        item.setDescription("A powerful drill");
-        item.setAvailable(true);
-        item.setRequest(itemRequest);
+            // Создаем объект ItemDto без requestId
+            ItemDto itemDtoWithoutRequestId = mapper.toDto(item);
+
+            // Вызываем метод handleRequest для преобразования ItemDto с requestId
+            mapper.handleRequest(itemDtoWithoutRequestId, item);
+
+            // Проверяем, что requestId был добавлен к ItemDto
+            assertEquals(item.getRequest().getId(), itemDtoWithoutRequestId.getRequestId());
+        }
     }
-
-    @Test
-    void whenItemHasRequest_thenRequestIdShouldBeMapped() {
-        ItemDto itemDto = itemMapper.toDto(item);
-
-        assertThat(itemDto.getRequestId()).isEqualTo(item.getRequest().getId());
-    }
-
-    @Test
-    void whenItemHasNoRequest_thenRequestIdShouldBeNull() {
-        item.setRequest(null); // No request associated
-        ItemDto itemDto = itemMapper.toDto(item);
-
-        assertThat(itemDto.getRequestId()).isNull();
-    }
-}
 

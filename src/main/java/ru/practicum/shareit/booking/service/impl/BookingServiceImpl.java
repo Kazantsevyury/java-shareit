@@ -87,10 +87,10 @@ public class BookingServiceImpl implements BookingService {
 
     }
 
-    @Override
-    public Iterable<Booking> findCurrentBookingsByBookerId(Long bookerId, LocalDateTime now, LocalDateTime now1, Pageable pageable) {
-        return bookingStorage.findCurrentBookingsByBookerId(bookerId, now, now1, pageable);
-    }
+        @Override
+        public Iterable<Booking> findCurrentBookingsByBookerId(Long bookerId, LocalDateTime now, LocalDateTime now1, Pageable pageable) {
+            return bookingStorage.findCurrentBookingsByBookerId(bookerId, now, now1, pageable);
+        }
 
     @Override
     public Iterable<Booking> findPastBookingsByBookerId(Long bookerId, LocalDateTime now, Pageable pageable) {

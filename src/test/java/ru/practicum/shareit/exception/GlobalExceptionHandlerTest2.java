@@ -7,7 +7,6 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import ru.practicum.shareit.exception.GlobalExceptionHandler;
 import ru.practicum.shareit.exception.exceptions.ItemRequestNotFoundException;
 
 import java.util.Map;
@@ -36,6 +35,17 @@ public class GlobalExceptionHandlerTest2 {
 
     @Test
     public void testHandleMethodArgumentTypeMismatch() {
+        MethodArgumentTypeMismatchException ex = new MethodArgumentTypeMismatchException("123", null, "state", null, new IllegalArgumentException("Unknown state: 123"));
+        ResponseEntity<Map<String, Object>> response = handler.handleMethodArgumentTypeMismatch(ex);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Unknown state: 123", response.getBody().get("error"));
+        assertEquals("Unknown state: 123", response.getBody().get("message"));
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getBody().get("status"));
+    }
+
+    @Test
+    public void testHandleMethodArgumentTypeMismatchElseCase() {
         MethodArgumentTypeMismatchException ex = new MethodArgumentTypeMismatchException("123", null, "state", null, new IllegalArgumentException("Unknown state: 123"));
         ResponseEntity<Map<String, Object>> response = handler.handleMethodArgumentTypeMismatch(ex);
 
