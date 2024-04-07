@@ -323,6 +323,7 @@ class ItemBookingFacadeImplTest {
         verify(userService).findUserById(userId);
         verify(bookingService).findBooking(bookingId);
     }
+
     @Test
     void testReturnBookingDtoFromAcknowledgeBooking() {
         // Arrange
@@ -354,7 +355,6 @@ class ItemBookingFacadeImplTest {
         verify(bookingMapper).toDto(booking);
         verifyNoMoreInteractions(bookingMapper);
     }
-
 
     @Test
     void testGetBookingFromUser() {

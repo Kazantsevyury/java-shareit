@@ -22,9 +22,9 @@ import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.MockitoAnnotations.openMocks;
 
-public class ItemBookingFacadeImplGetAllSortedBookingsFromBookerTest{
-        @Mock
-        private BookingServiceImpl bookingService;
+public class ItemBookingFacadeImplGetAllSortedBookingsFromBookerTest {
+    @Mock
+    private BookingServiceImpl bookingService;
     @Mock
     private CommentServiceImpl commentService;
     @Mock

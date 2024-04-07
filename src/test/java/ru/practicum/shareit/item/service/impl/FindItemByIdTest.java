@@ -184,12 +184,10 @@ class FindItemByIdTest {
         verify(commentStorage, times(1)).findAllByItemId(item.getId());
         verify(commentMapper, times(1)).toDtoList(any(List.class));
 
-
-
         verify(commentMapper, times(1)).toDtoList(List.of(comment));
 
-
     }
+
     @Test
     void findItemById_ShouldThrowRuntimeException_WhenItemNotFound() {
         // Arrange
@@ -200,7 +198,6 @@ class FindItemByIdTest {
         assertThrows(RuntimeException.class, () -> itemService.findItemById(1L, itemId),
                 "Item not found"); // Проверяем, что метод выкидывает исключение
     }
-
 
     @Test
     void findItemById_WhenRequesterIsNotOwner_ShouldReturnItemWithoutBookingDates() {
