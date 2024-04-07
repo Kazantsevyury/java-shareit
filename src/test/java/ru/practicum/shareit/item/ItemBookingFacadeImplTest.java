@@ -74,6 +74,7 @@ class ItemBookingFacadeImplTest {
 
     void init() {
         userId = 1;
+
         bookingId = 2;
         itemId = 3;
         itemOwner = User.builder()
