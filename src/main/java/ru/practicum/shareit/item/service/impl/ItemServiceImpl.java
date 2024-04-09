@@ -88,9 +88,6 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public GetItemDto findItemById(final Long userId, final Long itemId) {
         final Item item =  getPureItemById(itemId);
-        if (item == null) {
-            throw new RuntimeException("Item not found");
-        }
 
         List<Booking> itemBookings = bookingService.findAllByItemId(itemId);
         if (itemBookings == null) {
