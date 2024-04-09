@@ -37,6 +37,7 @@ class BookingServiceImplUnitTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
     }
+
     @Test
     void whenFindBookingCalledWithValidIdThenReturnBooking() {
         Long bookingId = 1L;
@@ -56,6 +57,7 @@ class BookingServiceImplUnitTest {
 
         assertThrows(BookingNotFoundException.class, () -> bookingService.findBooking(bookingId));
     }
+
     @Test
     void whenFindAllByItemIdInCalledWithValidIdsThenReturnBookings() {
         List<Long> itemIds = Arrays.asList(1L, 2L);
@@ -67,6 +69,7 @@ class BookingServiceImplUnitTest {
         assertNotNull(actualBookings);
         assertEquals(expectedBookings.size(), actualBookings.size());
     }
+
     @Test
     void whenPureSaveIsCalledWithBookingThenReturnSavedBooking() {
         // Arrange
@@ -82,6 +85,7 @@ class BookingServiceImplUnitTest {
         assertEquals(bookingToSave.getId(), savedBooking.getId());
         verify(bookingStorage).save(bookingToSave); // Ensure save method was called with the correct object
     }
+
     @Test
     void whenFindAllByItemIdCalledWithValidIdThenReturnBookingsList() {
         // Подготовка
@@ -98,6 +102,7 @@ class BookingServiceImplUnitTest {
         assertEquals(expectedBookings, actualBookings, "Возвращаемый список бронирований должен совпадать с ожидаемым");
         verify(bookingStorage).findAllByItemIdList(itemId); // Удостоверимся, что метод был вызван с правильным ID
     }
+
     @Test
     void whenFindAllByItemIdAndBookerIdCalledWithValidIdsThenReturnBookingsList() {
         // Подготовка
@@ -115,6 +120,7 @@ class BookingServiceImplUnitTest {
         assertEquals(expectedBookings, actualBookings, "Возвращаемый список бронирований должен совпадать с ожидаемым");
         verify(bookingStorage).findAllByItemIdAndBookerId(itemId, bookerId);  // Проверяем, что метод вызван с правильными параметрами
     }
+
     @Test
     void whenFindPastBookingsByBookerIdCalledWithValidIdThenReturnPastBookingsList() {
         // Подготовка
@@ -132,6 +138,7 @@ class BookingServiceImplUnitTest {
         assertTrue(((Collection<?>) actualBookings).size() == expectedBookings.size(), "Размер возвращаемого списка прошлых бронирований должен совпадать с ожидаемым");
         verify(bookingStorage).findPastBookingsByBookerId(bookerId, now, pageable); // Проверяем вызов с правильными параметрами
     }
+
     @Test
     void whenFindCurrentBookingsByBookerIdCalledWithValidIdThenReturnCurrentBookingsList() {
         // Подготовка
@@ -149,6 +156,7 @@ class BookingServiceImplUnitTest {
         assertTrue(((Collection<?>) actualBookings).size() == expectedBookings.size(), "Размер возвращаемого списка текущих бронирований должен совпадать с ожидаемым");
         verify(bookingStorage).findCurrentBookingsByBookerId(bookerId, now, now, pageable); // Проверяем вызов с правильными параметрами
     }
+
     @Test
     void whenFindFutureBookingsByBookerIdCalledWithValidIdThenReturnFutureBookingsList() {
         // Подготовка
@@ -166,6 +174,7 @@ class BookingServiceImplUnitTest {
         assertTrue(((Collection<?>) actualBookings).size() == expectedBookings.size(), "Размер возвращаемого списка будущих бронирований должен совпадать с ожидаемым");
         verify(bookingStorage).findFutureBookingsByBookerId(bookerId, now, pageable); // Проверяем вызов с правильными параметрами
     }
+
     @Test
     void whenFindBookingsByBookerIdAndStatusCalledWithValidParamsThenReturnFilteredBookingsList() {
         // Подготовка
@@ -183,6 +192,5 @@ class BookingServiceImplUnitTest {
         assertTrue(((Collection<?>) actualBookings).size() == expectedBookings.size(), "Размер возвращаемого списка бронирований должен совпадать с ожидаемым");
         verify(bookingStorage).findBookingsByBookerIdAndStatus(bookerId, bookingStatus, pageable); // Проверяем вызов с правильными параметрами
     }
-
 
 }
