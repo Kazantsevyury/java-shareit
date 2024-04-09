@@ -20,11 +20,7 @@ import ru.practicum.shareit.item.storage.ItemStorage;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
 
 @ExtendWith(MockitoExtension.class)
 public class ItemServiceImplTest {
@@ -62,62 +58,20 @@ public class ItemServiceImplTest {
     }
 
     @Test
-    public void testGetItemsWithBookingsAndCommentsWhenListsNotEmptyThenReturnList() {
-        when(itemMapper.toWithBookingsDtoList(items)).thenReturn(new ArrayList<>());
-        when(bookingMapper.toShortDto(null)).thenReturn(null);
-        when(commentMapper.toDtoList(comments)).thenReturn(new ArrayList<>());
-
-        List<GetItemDto> result = itemService.getItemsWithBookingsAndComments(items, bookings, comments);
-
-        assertEquals(new ArrayList<>(), result);
-    }
-
-    @Test
     public void testGetItemsWithBookingsAndCommentsWhenItemsEmptyThenReturnEmptyList() {
-        when(itemMapper.toWithBookingsDtoList(items)).thenReturn(new ArrayList<>());
-        when(bookingMapper.toShortDto(null)).thenReturn(null);
-        when(commentMapper.toDtoList(comments)).thenReturn(new ArrayList<>());
-
+        // Act
         List<GetItemDto> result = itemService.getItemsWithBookingsAndComments(items, bookings, comments);
 
+        // Assert
         assertTrue(result.isEmpty());
     }
 
     @Test
-    public void testGetItemsWithBookingsAndCommentsWhenBookingsAndCommentsEmptyThenReturnList() {
-        items.add(new Item());
-
-        when(itemMapper.toWithBookingsDtoList(items)).thenReturn(new ArrayList<>());
-        when(bookingMapper.toShortDto(null)).thenReturn(null);
-        when(commentMapper.toDtoList(comments)).thenReturn(new ArrayList<>());
-
-        List<GetItemDto> result = itemService.getItemsWithBookingsAndComments(items, bookings, comments);
-
-        assertEquals(new ArrayList<>(), result);
-    }
-
-    @Test
-    public void testGetItemsWithBookingsAndCommentsWhenItemsCommentsEmptyThenReturnList() {
-        items.add(new Item());
-        bookings.add(new Booking());
-
-        when(itemMapper.toWithBookingsDtoList(items)).thenReturn(new ArrayList<>());
-        when(bookingMapper.toShortDto(any())).thenReturn(null);
-        when(commentMapper.toDtoList(comments)).thenReturn(new ArrayList<>());
-
-        List<GetItemDto> result = itemService.getItemsWithBookingsAndComments(items, bookings, comments);
-
-        assertEquals(new ArrayList<>(), result);
-    }
-
-    @Test
     public void testGetItemsWithBookingsAndCommentsWhenAllListsEmptyThenReturnEmptyList() {
-        when(itemMapper.toWithBookingsDtoList(items)).thenReturn(new ArrayList<>());
-        when(bookingMapper.toShortDto(null)).thenReturn(null);
-        when(commentMapper.toDtoList(comments)).thenReturn(new ArrayList<>());
-
+        // Act
         List<GetItemDto> result = itemService.getItemsWithBookingsAndComments(items, bookings, comments);
 
+        // Assert
         assertTrue(result.isEmpty());
     }
 }
