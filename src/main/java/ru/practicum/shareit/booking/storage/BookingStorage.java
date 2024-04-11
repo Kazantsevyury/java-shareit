@@ -1,30 +1,17 @@
 package ru.practicum.shareit.booking.storage;
 
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.BookingStatus;
 
-import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-
 public interface BookingStorage extends JpaRepository<Booking, Long> {
-    @Query("SELECT b FROM Booking b JOIN b.item i JOIN FETCH b.booker u WHERE i.id = ?1")
-    List<Booking> findAllByItemIdList(Long itemId);
-
-    @Query("SELECT b FROM Booking b " +
-            "WHERE b.booker.id = :bookerId " +
-            "AND (:state = 'ALL' OR b.status = :state) " +
-            "ORDER BY b.start DESC")
-    Page<Booking> findAllByBookerIdAndStatus(@Param("bookerId") Long bookerId,
-                                             @Param("state") BookingStatus state,
-                                             Pageable pageable);
 
     @Query("SELECT b FROM Booking b JOIN FETCH b.item i JOIN FETCH b.booker u WHERE b.id = ?1")
     Optional<Booking> findBookingById(Long bookingId);

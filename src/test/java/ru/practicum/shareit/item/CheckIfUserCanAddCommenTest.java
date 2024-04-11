@@ -9,7 +9,7 @@ package ru.practicum.shareit.item;
  import static org.junit.jupiter.api.Assertions.assertThrows;
 
  import ru.practicum.shareit.booking.model.Booking;
- import ru.practicum.shareit.booking.enums.BookingStatus;
+ import ru.practicum.shareit.booking.model.BookingStatus;
  import ru.practicum.shareit.exception.exceptions.ItemUnavailableException;
  import ru.practicum.shareit.item.model.Item;
  import ru.practicum.shareit.user.model.User;

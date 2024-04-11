@@ -1,4 +1,4 @@
-package ru.practicum.shareit.booking;
+package ru.practicum.shareit.booking.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -18,4 +18,3 @@ public interface BookingMapper {
 
     List<BookingDto> toDtoList(List<Booking> bookings);
 }
-
