@@ -11,7 +11,7 @@ import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.service.BookingServiceImpl;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.impl.CommentServiceImpl;
-import ru.practicum.shareit.item.service.impl.ItemServiceImpl;
+import ru.practicum.shareit.item.service.ItemServiceImpl;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserServiceImpl;
 
