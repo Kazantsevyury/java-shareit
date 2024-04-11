@@ -8,12 +8,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.exception.ExceptionFactory;
 import ru.practicum.shareit.exception.exceptions.EntityAlreadyExistsException;
 import ru.practicum.shareit.exception.exceptions.UserNotFoundException;
-import ru.practicum.shareit.user.UserMapper;
-import ru.practicum.shareit.user.UserStorage;
+import ru.practicum.shareit.user.mapper.UserMapper;
+import ru.practicum.shareit.user.storage.UserStorage;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserUpdateDto;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.service.UserServiceImpl;
 
 import java.util.Arrays;
 import java.util.Collection;

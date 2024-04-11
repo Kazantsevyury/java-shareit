@@ -6,8 +6,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.shareit.user.UserStorage;
+import ru.practicum.shareit.user.storage.UserStorage;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.service.UserServiceImpl;
 
 import static org.mockito.Mockito.times;
 

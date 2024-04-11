@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.Email;
-import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotBlank;
 
 @Data
 @AllArgsConstructor
@@ -14,9 +14,9 @@ import javax.validation.constraints.NotEmpty;
 @Builder
 public class UserDto {
     private Long id;
+    @NotBlank(message = "Имя пользователя не может быть пустым.")
     private String name;
-
-    @NotEmpty(message = "Email не может быть пустым")
-    @Email(message = "Неверно указан Email")
+    @NotBlank(message = "Должен быть обязательно указан email.")
+    @Email(message = "Некорректный формат электронной почты.", regexp = "^[\\w\\-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")
     private String email;
 }

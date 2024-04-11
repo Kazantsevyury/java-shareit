@@ -13,7 +13,7 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.impl.CommentServiceImpl;
 import ru.practicum.shareit.item.service.impl.ItemServiceImpl;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.service.impl.UserServiceImpl;
+import ru.practicum.shareit.user.service.UserServiceImpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
