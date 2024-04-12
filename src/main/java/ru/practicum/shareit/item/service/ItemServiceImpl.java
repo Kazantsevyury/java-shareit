@@ -2,7 +2,6 @@ package ru.practicum.shareit.item.service;
 
 import com.google.common.collect.Lists;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
@@ -39,7 +38,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ItemServiceImpl implements ItemService {
     private final ItemStorage itemStorage;
     private final UserStorage userStorage;
@@ -50,13 +48,6 @@ public class ItemServiceImpl implements ItemService {
     private final BookingMapper bookingMapper;
     private final CommentMapper commentMapper;
 
-    /**
-     * Добавление новой вещи.
-     *
-     * @param userId  идентификатор пользователя, добавляющего вещь
-     * @param itemDto добавляемая вещь
-     * @return добавленная вещь
-     */
     @Override
     @Transactional
     public ItemDto addItem(final Long userId, final ItemDto itemDto) {
@@ -65,19 +56,9 @@ public class ItemServiceImpl implements ItemService {
         item.setOwner(owner);
         assignRequestToItem(itemDto, item);
         final Item addedItem = itemStorage.save(item);
-        log.info("Пользователь с id '{}' добавил новую вещь c id '{}'.", userId, addedItem.getId());
         return itemMapper.toDto(addedItem);
     }
 
-    /**
-     * Редактирование вещи. Параметры вещи, допустимые к обновлению: название, описание и статус. Обновлять данные
-     * может только владелец вещи.
-     *
-     * @param userId        идентификатор пользователя, делающего запрос
-     * @param itemId        идентификатор обновляемой вещи
-     * @param itemUpdateDto параметры для обновления
-     * @return вещь с обновленными параметрами
-     */
     @Override
     @Transactional
     public ItemDto updateItem(final Long userId, final Long itemId, final ItemUpdateDto itemUpdateDto) {
@@ -99,14 +80,6 @@ public class ItemServiceImpl implements ItemService {
         return itemMapper.toDto(updatedItem);
     }
 
-    /**
-     * Получение вещи по ее идентификатору. Если запрос делает владелец вещи, то он также видит даты ближайшего и
-     * последнего бронирования.
-     *
-     * @param userId идентификатор пользователя, делающего запрос
-     * @param itemId идентификатор запрашиваемой вещи
-     * @return запрошенная вещь
-     */
     @Override
     public GetItemDto findItemById(final Long userId, final Long itemId) {
         getUser(userId);
@@ -120,19 +93,9 @@ public class ItemServiceImpl implements ItemService {
         }
         List<Comment> comments = commentStorage.findAllByItemId(item.getId());
         itemWithBookingDatesDto.getComments().addAll(commentMapper.toDtoList(comments));
-        log.info("Получение вещи с id '{}'.", itemId);
         return itemWithBookingDatesDto;
     }
 
-    /**
-     * Просмотр владельцем списка всех его вещей. Результат возвращается постранично. Для этого указываются два
-     * параметра:  from — индекс первого элемента, начиная с 0, и size — количество элементов для отображения.
-     *
-     * @param userId идентификатор пользователя, делающего запрос
-     * @param from   индекс первого отображаемого элемента, начиная с 0
-     * @param size   количество элементов для отображения
-     * @return список вещей пользователя
-     */
     @Override
     public List<GetItemDto> findAllItemsByUserId(final Long userId, Long from, Integer size) {
         getUser(userId);
@@ -144,24 +107,11 @@ public class ItemServiceImpl implements ItemService {
         List<Comment> itemsComments = commentStorage.findAllByItemIdIn(itemIds);
         final List<GetItemDto> itemsWithBookings =
                 getItemsWithBookingsAndComments(items, bookingFromIds, itemsComments);
-        log.info("Получение всех вещей пользователя с id '{}'.", userId);
         return itemsWithBookings;
     }
 
-    /**
-     * Поиск вещи потенциальным арендатором. Пользователь передаёт в строке запроса текст, и система ищет вещи,
-     * содержащие этот текст в названии или описании. Регистр текста не учитывается. Результат возвращается постранично.
-     * Для этого указываются два параметра:  from — индекс первого элемента, начиная с 0, и size — количество элементов
-     * для отображения.
-     *
-     * @param text текстовый запрос
-     * @param from индекс первого отображаемого элемента, начиная с 0
-     * @param size количество элементов для отображения
-     * @return список вещей, соответсвующих запросу
-     */
     @Override
     public List<ItemDto> searchItems(final String text, Long from, Integer size) {
-        log.info("Поиск вещей по запросу: {}.", text);
         if (text.isBlank()) {
             return Collections.emptyList();
         }
@@ -171,14 +121,6 @@ public class ItemServiceImpl implements ItemService {
         return itemMapper.toDtoList(Lists.newArrayList(searchResult));
     }
 
-    /**
-     * Добавление комментария о вещи после окончания аренды.
-     *
-     * @param userId     идентификатор пользователя, желающего оставить комментарий
-     * @param itemId     идентификатор вещи
-     * @param commentDto комментарий
-     * @return добавленный комментарий
-     */
     @Override
     @Transactional
     public CommentDto addCommentToItem(final Long userId, final Long itemId, final AddCommentDto commentDto) {
@@ -193,7 +135,6 @@ public class ItemServiceImpl implements ItemService {
                 .created(LocalDateTime.now())
                 .build();
         Comment savedComment = commentStorage.save(comment);
-        log.info("Пользователь с id '{} добавил комментарий вещи с id '{}.", userId, itemId);
         return commentMapper.toDto(savedComment);
     }
 

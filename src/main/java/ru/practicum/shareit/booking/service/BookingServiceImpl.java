@@ -2,7 +2,6 @@ package ru.practicum.shareit.booking.service;
 
 import com.google.common.collect.Lists;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
@@ -28,7 +27,6 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class BookingServiceImpl implements BookingService {
 
     private final BookingStorage bookingStorage;
@@ -36,14 +34,6 @@ public class BookingServiceImpl implements BookingService {
     private final ItemStorage itemStorage;
     private final BookingMapper bookingMapper;
 
-
-    /**
-     * Добавление нового запроса на бронирование. Запрос может быть создан любым пользователем.
-     *
-     * @param userId     идентификатор пользователя, делающего бронирование
-     * @param bookingDto объект бронирования
-     * @return бронирование с присвоенным идентификатором
-     */
     @Override
     @Transactional
     public BookingDto addBooking(final Long userId, final AddBookingDto bookingDto) {
@@ -63,18 +53,9 @@ public class BookingServiceImpl implements BookingService {
                 .end(bookingDto.getEnd())
                 .build();
         final Booking savedBooking = bookingStorage.save(booking);
-        log.info("Пользователь с id '{}' добавил бронирование вещи с id '{}'.", userId, bookingDto.getItemId());
         return bookingMapper.toDto(savedBooking);
     }
 
-    /**
-     * Подтверждение или отклонение запроса на бронирование. Может быть выполнено только владельцем вещи.
-     *
-     * @param userId    идентификатор пользователя, делающего подтверждение
-     * @param bookingId идентификатор бронирования
-     * @param approved  подтверждение или отмена бронирования
-     * @return подтвержденное или отмененное бронирование
-     */
     @Override
     @Transactional
     public BookingDto acknowledgeBooking(final Long userId, final Long bookingId, final Boolean approved) {
@@ -96,14 +77,6 @@ public class BookingServiceImpl implements BookingService {
         return bookingMapper.toDto(booking);
     }
 
-    /**
-     * Получение бронирования по идентификатору.Может быть выполнено либо автором бронирования, либо владельцем вещи,
-     * к которой относится бронирование.
-     *
-     * @param userId    идентификатор пользователя, делающего запрос
-     * @param bookingId идентификатор бронирования
-     * @return найденное бронирование
-     */
     @Override
     public BookingDto getBookingById(final Long userId, final Long bookingId) {
         findUser(userId);
@@ -116,22 +89,6 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    /**
-     * Получение списка бронирований для всех вещей пользователя. Параметр state необязательный и по умолчанию
-     * равен ALL. Также он может принимать значения CURRENT, PAST, FUTURE, WAITING, REJECTED. Бронирования возвращаются
-     * отсортированными по дате от более новых к более старым. При наличии параметров from и size результат отображается
-     * постранично, начиная с элемента под номером from по количеству элементов на странице, равному size. Флаг isOwner
-     * определяет то, какие бронирования увидит пользователь. Если true, то будет получен список собственных
-     * бронирований, если false, то будет получен список бронирований остальных пользователей.
-     *
-     * @param userId  идентификатор пользователя, делающего запрос
-     * @param state   статус бронирования
-     * @param from    индекс индекс первого отображаемого элемента (отсчет начинается с нуля)
-     * @param size    количество отображаемых элементов на странице
-     * @param isOwner флаг, хочет ли запрашивающий пользователь посмотреть свои бронирования (true) или список
-     *                бронирований других пользователей
-     * @return список бронирований
-     */
     @Override
     public List<BookingDto> getAllBookingsFromUser(final Long userId, final GetBookingState state, Long from,
                                                    Integer size, boolean isOwner) {
