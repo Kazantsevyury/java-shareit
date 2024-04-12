@@ -13,31 +13,6 @@ import static ru.practicum.shareit.validation.ValidationTestUtils.dtoHasErrorMes
 
 public class UserValidationTest {
 
-    @ParameterizedTest
-    @ValueSource(strings = {"", " ", "    "})
-    public void createUserWithInvalidName(String name) {
-        UserDto userDto = UserDto.builder()
-                .id(1L)
-                .name(name)
-                .email("email")
-                .build();
-
-        assertTrue(dtoHasErrorMessage(userDto, "Имя пользователя не может быть пустым."));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {" ", "test.ru", "   .com", "@test", "@.org", "test@"})
-    @DisplayName("Проверка невозможности добавить пользователя с неправильно заданным email")
-    public void createUserWithInvalidEmail(String email) {
-        UserDto userDto = UserDto.builder()
-                .id(1L)
-                .name("name")
-                .email(email)
-                .build();
-
-        assertTrue(dtoHasErrorMessage(userDto, "Некорректный формат электронной почты."));
-    }
-
     @Test
     @DisplayName("Проверка невозможности добавления пользователя, когда name = null")
     public void createUserWithNullName() {

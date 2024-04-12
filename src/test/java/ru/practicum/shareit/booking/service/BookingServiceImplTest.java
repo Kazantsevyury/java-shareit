@@ -1,362 +1,643 @@
-package ru.practicum.shareit.booking.service.impl;
+package ru.practicum.shareit.booking.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.Pageable;
-import ru.practicum.shareit.booking.model.BookingStatus;
+import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.shareit.booking.dto.AddBookingDto;
+import ru.practicum.shareit.booking.dto.GetBookingState;
+import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.service.BookingServiceImpl;
+import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.storage.BookingStorage;
-import ru.practicum.shareit.exception.exceptions.BookingNotFoundException;
-import ru.practicum.shareit.exception.exceptions.ItemRequestNotFoundException;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.storage.ItemStorage;
+import ru.practicum.shareit.shared.OffsetPageRequest;
+import ru.practicum.shareit.shared.exception.ItemUnavailableException;
+import ru.practicum.shareit.shared.exception.NotAuthorizedException;
+import ru.practicum.shareit.shared.exception.NotFoundException;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.storage.UserStorage;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
+import static ru.practicum.shareit.booking.dto.GetBookingState.*;
 
+@ExtendWith(MockitoExtension.class)
 class BookingServiceImplTest {
 
     @Mock
     private BookingStorage bookingStorage;
 
+    @Mock
+    private UserStorage userStorage;
+
+    @Mock
+    private ItemStorage itemStorage;
+
+    @Mock
+    private BookingMapper bookingMapper;
+
     @InjectMocks
     private BookingServiceImpl bookingService;
 
-    private Booking booking;
-    private User owner;
+    @Captor
+    private ArgumentCaptor<Booking> bookingArgumentCaptor;
+
+    @Captor
+    private ArgumentCaptor<OffsetPageRequest> offsetPageRequestArgumentCaptor;
+
+    private long userId;
+
+    private long bookingId;
+
+    private long itemId;
+
+    private Item item;
+
+    private User itemOwner;
+
     private User booker;
 
+    private Booking booking;
+
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        owner = new User();
-        owner.setId(1L);
-        booker = new User();
-        booker.setId(2L);
-
-        Item item = new Item();
-        item.setOwner(owner);
-
-        booking = new Booking();
-        booking.setId(1L);
-        booking.setItem(item);
-        booking.setBooker(booker);
+    void init() {
+        userId = 1;
+        bookingId = 2;
+        itemId = 3;
+        itemOwner = User.builder()
+                .id(5L)
+                .name("name")
+                .email("email@mail.com")
+                .build();
+        item = Item.builder()
+                .id(itemId)
+                .name("name")
+                .description("description")
+                .available(true)
+                .owner(itemOwner)
+                .build();
+        booker = User.builder()
+                .id(userId)
+                .build();
+        booking = Booking.builder()
+                .status(BookingStatus.WAITING)
+                .start(LocalDateTime.now().plusDays(1))
+                .end(LocalDateTime.now().plusDays(4))
+                .item(item)
+                .booker(booker)
+                .build();
     }
 
     @Test
-    void getBookingByIdAndUserId_WhenBooker_Success() {
-        when(bookingStorage.findBookingById(anyLong())).thenReturn(java.util.Optional.of(booking));
+    void addBooking_ItemAndUserFound_ShouldReturnBookingDto() {
+        AddBookingDto addBookingDto = AddBookingDto.builder()
+                .itemId(itemId)
+                .start(LocalDateTime.now().plusDays(1))
+                .end(LocalDateTime.now().plusDays(4))
+                .build();
+        User user = new User();
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(user));
+        when(itemStorage.findById(itemId))
+                .thenReturn(Optional.of(item));
 
-        Booking result = bookingService.getBookingByIdAndUserId(1L, 2L);
+        bookingService.addBooking(userId, addBookingDto);
 
-        assertNotNull(result);
-        assertEquals(2L, result.getBooker().getId());
+        verify(userStorage, times(1)).findById(userId);
+        verify(itemStorage, times(1)).findById(itemId);
+        verify(bookingStorage, times(1)).save(bookingArgumentCaptor.capture());
+        Booking captorValue = bookingArgumentCaptor.getValue();
+
+        assertThat(captorValue.getItem(), is(item));
+        assertThat(captorValue.getBooker(), is(user));
+        assertThat(captorValue.getStatus(), is(BookingStatus.WAITING));
+        assertThat(captorValue.getStart(), is(addBookingDto.getStart()));
+        assertThat(captorValue.getEnd(), is(addBookingDto.getEnd()));
+
+        verify(bookingMapper, times(1)).toDto(any());
     }
 
     @Test
-    void getBookingByIdAndUserId_WhenOwner_Success() {
-        when(bookingStorage.findBookingById(anyLong())).thenReturn(java.util.Optional.of(booking));
+    void addBooking_UserNotFound_ShouldThrowNotFoundException() {
+        AddBookingDto addBookingDto = AddBookingDto.builder()
+                .itemId(itemId)
+                .start(LocalDateTime.now().plusDays(1))
+                .end(LocalDateTime.now().plusDays(4))
+                .build();
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.empty());
 
-        Booking result = bookingService.getBookingByIdAndUserId(1L, 1L);
+        NotFoundException e = assertThrows(NotFoundException.class,
+                () -> bookingService.addBooking(userId, addBookingDto));
 
-        assertNotNull(result);
-        assertEquals(1L, result.getItem().getOwner().getId());
+        assertThat(e.getMessage(), is("Пользователь с id '" + userId + "' не найден."));
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(itemStorage, never()).findById(any());
+        verify(bookingStorage, never()).save(any());
+        verify(bookingMapper, never()).toDto(any());
     }
 
     @Test
-    void getBookingByIdAndUserId_WhenNeitherOwnerNorBooker_ThrowsException() {
-        when(bookingStorage.findBookingById(anyLong())).thenReturn(java.util.Optional.of(booking));
+    void addBooking_ItemNotFound_ShouldThrowNotFoundException() {
+        AddBookingDto addBookingDto = AddBookingDto.builder()
+                .itemId(itemId)
+                .start(LocalDateTime.now().plusDays(1))
+                .end(LocalDateTime.now().plusDays(4))
+                .build();
+        User user = new User();
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(user));
+        when(itemStorage.findById(itemId))
+                .thenReturn(Optional.empty());
 
-        Exception exception = assertThrows(ItemRequestNotFoundException.class, () -> bookingService.getBookingByIdAndUserId(1L, 3L));
+        NotFoundException e = assertThrows(NotFoundException.class,
+                () -> bookingService.addBooking(userId, addBookingDto));
 
-        String expectedMessage = "Бронирование с id '1' не найдено.";
-        String actualMessage = exception.getMessage();
+        assertThat(e.getMessage(), is("Вещь с id '" + itemId + "' не найдена."));
 
-        assertTrue(actualMessage.contains(expectedMessage));
+        verify(userStorage, times(1)).findById(userId);
+        verify(itemStorage, times(1)).findById(itemId);
+        verify(bookingStorage, never()).save(any());
+        verify(bookingMapper, never()).toDto(any());
     }
 
     @Test
-    void pureSave_ShouldSaveBooking_Success() {
-        when(bookingStorage.save(any(Booking.class))).thenReturn(booking);
+    void addBooking_OwnerTryToBookHisItem_ShouldThrowNotAuthorizedException() {
+        AddBookingDto addBookingDto = AddBookingDto.builder()
+                .itemId(itemId)
+                .start(LocalDateTime.now().plusDays(1))
+                .end(LocalDateTime.now().plusDays(4))
+                .build();
+        User user = new User();
+        itemOwner.setId(userId);
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(user));
+        when(itemStorage.findById(itemId))
+                .thenReturn(Optional.of(item));
 
-        Booking savedBooking = bookingService.pureSave(booking);
+        NotAuthorizedException e = assertThrows(NotAuthorizedException.class,
+                () -> bookingService.addBooking(userId, addBookingDto));
 
-        assertNotNull(savedBooking);
-        verify(bookingStorage, times(1)).save(any(Booking.class));
+        assertThat(e.getMessage(), is("Вещь с id '" + itemId +
+                "' уже принадлежит пользователю с id '" + userId + "'."));
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(itemStorage, times(1)).findById(itemId);
+        verify(bookingStorage, never()).save(any());
+        verify(bookingMapper, never()).toDto(any());
     }
 
     @Test
-    void findBooking_ExistingId_ReturnsBooking() {
-        when(bookingStorage.findBookingById(anyLong())).thenReturn(java.util.Optional.of(booking));
+    void acknowledgeBooking_UserAndBookingFoundAndSApprovedTrue_ShouldReturnBookingDto() {
+        itemOwner.setId(userId);
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingById(bookingId))
+                .thenReturn(Optional.of(booking));
 
-        Booking foundBooking = bookingService.findBooking(1L);
+        bookingService.acknowledgeBooking(userId, bookingId, true);
 
-        assertNotNull(foundBooking);
-        assertEquals(1L, foundBooking.getId());
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingById(bookingId);
+        verify(bookingMapper, times(1)).toDto(bookingArgumentCaptor.capture());
+        Booking captorValue = bookingArgumentCaptor.getValue();
+
+        assertThat(captorValue.getStatus(), is(BookingStatus.APPROVED));
     }
 
     @Test
-    void findBooking_NonExistingId_ThrowsException() {
-        when(bookingStorage.findBookingById(anyLong())).thenReturn(java.util.Optional.empty());
+    void acknowledgeBooking_UserAndBookingFoundAndApprovedFalse_ShouldReturnBookingDto() {
+        itemOwner.setId(userId);
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingById(bookingId))
+                .thenReturn(Optional.of(booking));
 
-        assertThrows(BookingNotFoundException.class, () -> bookingService.findBooking(1L));
+        bookingService.acknowledgeBooking(userId, bookingId, false);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingById(bookingId);
+        verify(bookingMapper, times(1)).toDto(bookingArgumentCaptor.capture());
+        Booking captorValue = bookingArgumentCaptor.getValue();
+
+        assertThat(captorValue.getStatus(), is(BookingStatus.REJECTED));
     }
 
     @Test
-    void findAllByItemIdIn_ShouldReturnListOfBookings_WhenItemIdsAreProvided() {
-        List<Long> itemIds = List.of(1L, 2L);
-        List<Booking> bookings = List.of(new Booking(), new Booking());
-        when(bookingStorage.findAllByItemIdIn(itemIds)).thenReturn(bookings);
-
-        List<Booking> result = bookingService.findAllByItemIdIn(itemIds);
-
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        verify(bookingStorage, times(1)).findAllByItemIdIn(itemIds);
-    }
-
-    @Test
-    void findAllByItemId_ShouldReturnListOfBookings_WhenItemIdIsProvided() {
-        Long itemId = 1L;
-        List<Booking> bookings = List.of(new Booking(), new Booking());
-        when(bookingStorage.findAllByItemIdList(itemId)).thenReturn(bookings);
-
-        List<Booking> result = bookingService.findAllByItemId(itemId);
-
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        verify(bookingStorage, times(1)).findAllByItemIdList(itemId);
-    }
-
-    @Test
-    void findAllByItemIdAndBookerId_ShouldReturnBookings_WhenItemIdAndBookerIdAreProvided() {
-        Long itemId = 1L;
-        Long bookerId = 1L;
-        List<Booking> expectedBookings = List.of(new Booking(), new Booking());
-        when(bookingStorage.findAllByItemIdAndBookerId(itemId, bookerId)).thenReturn(expectedBookings);
-
-        List<Booking> actualBookings = bookingService.findAllByItemIdAndBookerId(itemId, bookerId);
-
-        assertNotNull(actualBookings);
-        assertEquals(expectedBookings.size(), actualBookings.size());
-        verify(bookingStorage, times(1)).findAllByItemIdAndBookerId(itemId, bookerId);
-    }
-
-    @Test
-    void findCurrentBookingsByOwnerId_ShouldReturnCurrentBookings_WhenOwnerIdIsProvided() {
-        Long ownerId = 1L;
-        LocalDateTime now = LocalDateTime.now();
-        Pageable pageable = Pageable.unpaged();
-
-        Booking currentBooking = new Booking();
-        currentBooking.setStart(now.minusDays(1));
-        currentBooking.setEnd(now.plusDays(1));
-
-        List<Booking> expectedBookings = List.of(currentBooking);
-        when(bookingStorage.findCurrentBookingsByOwnerId(eq(ownerId), any(LocalDateTime.class), any(LocalDateTime.class), eq(pageable)))
-                .thenReturn(expectedBookings);
-
-        Iterable<Booking> actualBookings = bookingService.findCurrentBookingsByOwnerId(ownerId, now, now, pageable);
-
-        assertNotNull(actualBookings);
-        assertTrue(actualBookings.iterator().hasNext());
-        Booking actualBooking = actualBookings.iterator().next();
-        assertEquals(currentBooking.getStart(), actualBooking.getStart());
-        assertEquals(currentBooking.getEnd(), actualBooking.getEnd());
-        verify(bookingStorage, times(1)).findCurrentBookingsByOwnerId(eq(ownerId), any(LocalDateTime.class), any(LocalDateTime.class), eq(pageable));
-    }
-
-    @Test
-    void findAllByItemOwnerId_ShouldReturnAllBookings_WhenOwnerIdIsProvided() {
-        Long ownerId = 1L;
-        Pageable pageable = Pageable.unpaged();
-        List<Booking> expectedBookings = List.of(new Booking(), new Booking());
-
-        when(bookingStorage.findAllByItemOwnerId(ownerId, pageable)).thenReturn(expectedBookings);
-
-        Iterable<Booking> actualBookings = bookingService.findAllByItemOwnerId(ownerId, pageable);
-
-        assertNotNull(actualBookings);
-        assertEquals(expectedBookings.size(), ((List<Booking>) actualBookings).size());
-        verify(bookingStorage, times(1)).findAllByItemOwnerId(ownerId, pageable);
-    }
-
-    @Test
-    void findPastBookingsByOwnerId_ShouldReturnPastBookings_WhenOwnerIdIsProvided() {
-        Long ownerId = 1L;
-        LocalDateTime now = LocalDateTime.now();
-        Pageable pageable = Pageable.unpaged();
-
-        Booking pastBooking = new Booking();
-        pastBooking.setStart(now.minusDays(10));
-        pastBooking.setEnd(now.minusDays(5));
-
-        List<Booking> expectedBookings = List.of(pastBooking);
-        when(bookingStorage.findPastBookingsByOwnerId(ownerId, now, pageable)).thenReturn(expectedBookings);
-
-        Iterable<Booking> actualBookings = bookingService.findPastBookingsByOwnerId(ownerId, now, pageable);
-
-        assertNotNull(actualBookings);
-        assertTrue(actualBookings.iterator().hasNext());
-        Booking actualBooking = actualBookings.iterator().next();
-        assertEquals(pastBooking.getStart(), actualBooking.getStart());
-        assertEquals(pastBooking.getEnd(), actualBooking.getEnd());
-        verify(bookingStorage, times(1)).findPastBookingsByOwnerId(ownerId, now, pageable);
-    }
-
-    @Test
-    void findFutureBookingsByOwnerId_ShouldReturnFutureBookings_WhenOwnerIdIsProvided() {
-        Long ownerId = 1L;
-        LocalDateTime now = LocalDateTime.now();
-        Pageable pageable = Pageable.unpaged();
-
-        Booking futureBooking = new Booking();
-        futureBooking.setStart(now.plusDays(5));
-        futureBooking.setEnd(now.plusDays(10));
-
-        List<Booking> expectedBookings = List.of(futureBooking);
-        when(bookingStorage.findFutureBookingsByOwnerId(ownerId, now, pageable)).thenReturn(expectedBookings);
-
-        Iterable<Booking> actualBookings = bookingService.findFutureBookingsByOwnerId(ownerId, now, pageable);
-
-        assertNotNull(actualBookings);
-        assertTrue(actualBookings.iterator().hasNext());
-        Booking actualBooking = actualBookings.iterator().next();
-        assertEquals(futureBooking.getStart(), actualBooking.getStart());
-        assertEquals(futureBooking.getEnd(), actualBooking.getEnd());
-        verify(bookingStorage, times(1)).findFutureBookingsByOwnerId(ownerId, now, pageable);
-    }
-
-    @Test
-    void findBookingsByOwnerIdAndStatus_ShouldReturnBookings_WhenOwnerIdAndStatusAreProvided() {
-        Long ownerId = 1L;
-        BookingStatus status = BookingStatus.APPROVED;
-        Pageable pageable = Pageable.unpaged();
-
-        Booking booking = new Booking();
+    void acknowledgeBooking_UserAndBookingFoundBookingStatusNotWaiting_ShouldThrowItemUnavailableException() {
+        itemOwner.setId(userId);
         booking.setStatus(BookingStatus.APPROVED);
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingById(bookingId))
+                .thenReturn(Optional.of(booking));
 
-        List<Booking> expectedBookings = List.of(booking);
-        when(bookingStorage.findBookingsByOwnerIdAndStatus(ownerId, status, pageable)).thenReturn(expectedBookings);
+        ItemUnavailableException e = assertThrows(ItemUnavailableException.class,
+                () -> bookingService.acknowledgeBooking(userId, bookingId, false));
 
-        Iterable<Booking> actualBookings = bookingService.findBookingsByOwnerIdAndStatus(ownerId, status, pageable);
+        assertThat(e.getMessage(), is("Текущий статус бронирования не позволяет сделать подтверждение."));
 
-        assertNotNull(actualBookings);
-        assertTrue(actualBookings.iterator().hasNext());
-        assertEquals(status, actualBookings.iterator().next().getStatus());
-        verify(bookingStorage, times(1)).findBookingsByOwnerIdAndStatus(ownerId, status, pageable);
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingById(bookingId);
+        verify(bookingMapper, never()).toDto(any());
     }
 
     @Test
-    void findAllByBookerId_ShouldReturnAllBookings_WhenBookerIdIsProvided() {
-        Long bookerId = 1L;
-        Pageable pageable = Pageable.unpaged();
+    void acknowledgeBooking_UserNotFound_ShouldThrowNotFoundException() {
+        itemOwner.setId(userId);
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.empty());
 
-        List<Booking> expectedBookings = List.of(new Booking(), new Booking());
-        when(bookingStorage.findAllByBookerId(bookerId, pageable)).thenReturn(expectedBookings);
+        NotFoundException e = assertThrows(NotFoundException.class,
+                () -> bookingService.acknowledgeBooking(userId, bookingId, false));
 
-        Iterable<Booking> actualBookings = bookingService.findAllByBookerId(bookerId, pageable);
+        assertThat(e.getMessage(), is("Пользователь с id '" + userId + "' не найден."));
 
-        assertNotNull(actualBookings);
-        assertEquals(expectedBookings.size(), ((List<Booking>) actualBookings).size());
-        verify(bookingStorage, times(1)).findAllByBookerId(bookerId, pageable);
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, never()).findBookingById(any());
+        verify(bookingMapper, never()).toDto(any());
     }
 
     @Test
-    void findCurrentBookingsByBookerId_ShouldReturnCurrentBookings_WhenBookerIdIsProvided() {
-        Long bookerId = 1L;
-        LocalDateTime now = LocalDateTime.now();
-        Pageable pageable = Pageable.unpaged();
+    void acknowledgeBooking_BookingNotFound_ShouldThrowNotFoundException() {
+        itemOwner.setId(userId);
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingById(bookingId))
+                .thenReturn(Optional.empty());
 
-        Booking currentBooking = new Booking();
-        currentBooking.setStart(now.minusDays(1));
-        currentBooking.setEnd(now.plusDays(1));
+        NotFoundException e = assertThrows(NotFoundException.class,
+                () -> bookingService.acknowledgeBooking(userId, bookingId, false));
 
-        List<Booking> expectedBookings = List.of(currentBooking);
-        when(bookingStorage.findCurrentBookingsByBookerId(bookerId, now, now, pageable)).thenReturn(expectedBookings);
+        assertThat(e.getMessage(), is("Бронирование с id '" + bookingId + "' не найдено."));
 
-        Iterable<Booking> actualBookings = bookingService.findCurrentBookingsByBookerId(bookerId, now, now, pageable);
-
-        assertNotNull(actualBookings);
-        assertTrue(actualBookings.iterator().hasNext());
-        Booking actualBooking = actualBookings.iterator().next();
-        assertEquals(currentBooking.getStart(), actualBooking.getStart());
-        assertEquals(currentBooking.getEnd(), actualBooking.getEnd());
-        verify(bookingStorage, times(1)).findCurrentBookingsByBookerId(bookerId, now, now, pageable);
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingById(bookingId);
+        verify(bookingMapper, never()).toDto(any());
     }
 
     @Test
-    void findPastBookingsByBookerId_ShouldReturnPastBookings_WhenBookerIdIsProvided() {
-        Long bookerId = 1L;
-        LocalDateTime now = LocalDateTime.now();
-        Pageable pageable = Pageable.unpaged();
+    void getBookingById_RequesterIsBooker() {
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingById(bookingId))
+                .thenReturn(Optional.of(booking));
 
-        Booking pastBooking = new Booking();
-        pastBooking.setStart(now.minusDays(10));
-        pastBooking.setEnd(now.minusDays(5));
+        bookingService.getBookingById(userId, bookingId);
 
-        List<Booking> expectedBookings = List.of(pastBooking);
-        when(bookingStorage.findPastBookingsByBookerId(bookerId, now, pageable)).thenReturn(expectedBookings);
-
-        Iterable<Booking> actualBookings = bookingService.findPastBookingsByBookerId(bookerId, now, pageable);
-
-        assertNotNull(actualBookings);
-        assertTrue(actualBookings.iterator().hasNext());
-        Booking actualBooking = actualBookings.iterator().next();
-        assertEquals(pastBooking.getStart(), actualBooking.getStart());
-        assertEquals(pastBooking.getEnd(), actualBooking.getEnd());
-        verify(bookingStorage, times(1)).findPastBookingsByBookerId(bookerId, now, pageable);
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingById(bookingId);
+        verify(bookingMapper, times(1)).toDto(booking);
     }
 
     @Test
-    void findFutureBookingsByBookerId_ShouldReturnFutureBookings_WhenBookerIdIsProvided() {
-        Long bookerId = 1L;
-        LocalDateTime now = LocalDateTime.now();
-        Pageable pageable = Pageable.unpaged();
+    void getBookingById_RequesterIsItemOwner() {
+        when(userStorage.findById(itemOwner.getId()))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingById(bookingId))
+                .thenReturn(Optional.of(booking));
 
-        Booking futureBooking = new Booking();
-        futureBooking.setStart(now.plusDays(5));
-        futureBooking.setEnd(now.plusDays(10));
+        bookingService.getBookingById(itemOwner.getId(), bookingId);
 
-        List<Booking> expectedBookings = List.of(futureBooking);
-        when(bookingStorage.findFutureBookingsByBookerId(bookerId, now, pageable)).thenReturn(expectedBookings);
-
-        Iterable<Booking> actualBookings = bookingService.findFutureBookingsByBookerId(bookerId, now, pageable);
-
-        assertNotNull(actualBookings);
-        assertTrue(actualBookings.iterator().hasNext());
-        Booking actualBooking = actualBookings.iterator().next();
-        assertEquals(futureBooking.getStart(), actualBooking.getStart());
-        assertEquals(futureBooking.getEnd(), actualBooking.getEnd());
-        verify(bookingStorage, times(1)).findFutureBookingsByBookerId(bookerId, now, pageable);
+        verify(userStorage, times(1)).findById(itemOwner.getId());
+        verify(bookingStorage, times(1)).findBookingById(bookingId);
+        verify(bookingMapper, times(1)).toDto(booking);
     }
 
     @Test
-    void findBookingsByBookerIdAndStatus_ShouldReturnBookings_WhenBookerIdAndStatusAreProvided() {
-        Long bookerId = 1L;
-        BookingStatus status = BookingStatus.APPROVED;
-        Pageable pageable = Pageable.unpaged();
+    void getBookingById_UnauthorizedRequest_ShouldThrowNotAuthorizedException() {
+        long unknownUserId = 99L;
+        when(userStorage.findById(unknownUserId))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingById(bookingId))
+                .thenReturn(Optional.of(booking));
 
-        Booking bookingWithStatus = new Booking();
-        bookingWithStatus.setStatus(BookingStatus.APPROVED);
+        NotAuthorizedException e = assertThrows(NotAuthorizedException.class,
+                () -> bookingService.getBookingById(unknownUserId, bookingId));
+        assertThat(e.getMessage(), is("У пользователя с id '" + unknownUserId + "' нет прав для доступа к бронированию с" +
+                " id '" + bookingId + "'."));
 
-        List<Booking> expectedBookings = List.of(bookingWithStatus);
-        when(bookingStorage.findBookingsByBookerIdAndStatus(bookerId, status, pageable)).thenReturn(expectedBookings);
-
-        Iterable<Booking> actualBookings = bookingService.findBookingsByBookerIdAndStatus(bookerId, status, pageable);
-
-        assertNotNull(actualBookings);
-        assertTrue(actualBookings.iterator().hasNext());
-        assertEquals(bookingWithStatus.getStatus(), actualBookings.iterator().next().getStatus());
-        verify(bookingStorage, times(1)).findBookingsByBookerIdAndStatus(bookerId, status, pageable);
+        verify(userStorage, times(1)).findById(unknownUserId);
+        verify(bookingStorage, times(1)).findBookingById(bookingId);
+        verify(bookingMapper, never()).toDto(any());
     }
 
+    @Test
+    void getBookingById_UserNotFound_ShouldThrowNotFoundException() {
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.empty());
+
+        NotFoundException e = assertThrows(NotFoundException.class,
+                () -> bookingService.getBookingById(userId, bookingId));
+        assertThat(e.getMessage(), is("Пользователь с id '" + userId + "' не найден."));
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, never()).findBookingById(any());
+        verify(bookingMapper, never()).toDto(any());
+    }
+
+    @Test
+    void getBookingById_BookingNotFound_ShouldThrowNotFoundException() {
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingById(bookingId))
+                .thenReturn(Optional.empty());
+
+        NotFoundException e = assertThrows(NotFoundException.class,
+                () -> bookingService.getBookingById(userId, bookingId));
+        assertThat(e.getMessage(), is("Бронирование с id '" + bookingId + "' не найдено."));
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingById(bookingId);
+        verify(bookingMapper, never()).toDto(any());
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsOwnerFromAndSizeAreNotNullStateAll_ShouldReturnListOfBookings() {
+        GetBookingState state = ALL;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = true;
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findAllByItemOwnerId(eq(userId), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findAllByItemOwnerId(eq(userId),
+                offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsOwnerFromAndSizeAreNotNullStateCurrent_ShouldReturnListOfBookings() {
+        GetBookingState state = CURRENT;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = true;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findCurrentBookingsByOwnerId(eq(userId), any(), any(), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findCurrentBookingsByOwnerId(eq(userId), any(), any(),
+                offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsOwnerFromAndSizeAreNotNullStatePast_ShouldReturnListOfBookings() {
+        GetBookingState state = PAST;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = true;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findPastBookingsByOwnerId(eq(userId), any(), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findPastBookingsByOwnerId(eq(userId), any(),
+                offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsOwnerFromAndSizeAreNotNullStateFuture_ShouldReturnListOfBookings() {
+        GetBookingState state = FUTURE;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = true;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findFutureBookingsByOwnerId(eq(userId), any(), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findFutureBookingsByOwnerId(eq(userId), any(),
+                offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsOwnerFromAndSizeAreNotNullStateWaiting_ShouldReturnListOfBookings() {
+        GetBookingState state = WAITING;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = true;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingsByOwnerIdAndStatus(eq(userId), eq(BookingStatus.WAITING), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingsByOwnerIdAndStatus(eq(userId),
+                eq(BookingStatus.WAITING), offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsOwnerFromAndSizeAreNotNullStateRejected_ShouldReturnListOfBookings() {
+        GetBookingState state = REJECTED;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = true;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingsByOwnerIdAndStatus(eq(userId), eq(BookingStatus.REJECTED), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingsByOwnerIdAndStatus(eq(userId),
+                eq(BookingStatus.REJECTED), offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsNotOwnerFromAndSizeAreNotNullStateAll_ShouldReturnListOfBookings() {
+        GetBookingState state = ALL;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = false;
+        when(userStorage.findById(userId))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findAllByBookerId(eq(userId), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findAllByBookerId(eq(userId),
+                offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsNotOwnerFromAndSizeAreNotNullStateCurrent_ShouldReturnListOfBookings() {
+        GetBookingState state = CURRENT;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = false;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findCurrentBookingsByBookerId(eq(userId), any(), any(), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findCurrentBookingsByBookerId(eq(userId), any(), any(),
+                offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsNotOwnerFromAndSizeAreNotNullStatePast_ShouldReturnListOfBookings() {
+        GetBookingState state = PAST;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = false;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findPastBookingsByBookerId(eq(userId), any(), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findPastBookingsByBookerId(eq(userId), any(),
+                offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsNotOwnerFromAndSizeAreNotNullStateFuture_ShouldReturnListOfBookings() {
+        GetBookingState state = FUTURE;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = false;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findFutureBookingsByBookerId(eq(userId), any(), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findFutureBookingsByBookerId(eq(userId), any(),
+                offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsNotOwnerFromAndSizeAreNotNullStateWaiting_ShouldReturnListOfBookings() {
+        GetBookingState state = WAITING;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = false;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingsByBookerIdAndStatus(eq(userId), eq(BookingStatus.WAITING), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingsByBookerIdAndStatus(eq(userId),
+                eq(BookingStatus.WAITING), offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
+
+    @Test
+    void getAllBookingsFromUser_RequesterIsNotOwnerFromAndSizeAreNotNullStateRejected_ShouldReturnListOfBookings() {
+        GetBookingState state = REJECTED;
+        Long from = 1L;
+        Integer size = 2;
+        boolean isOwner = false;
+        when(userStorage.findById(eq(userId)))
+                .thenReturn(Optional.of(new User()));
+        when(bookingStorage.findBookingsByBookerIdAndStatus(eq(userId), eq(BookingStatus.REJECTED), any()))
+                .thenReturn(List.of(booking));
+
+        bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner);
+
+        verify(userStorage, times(1)).findById(userId);
+        verify(bookingStorage, times(1)).findBookingsByBookerIdAndStatus(eq(userId),
+                eq(BookingStatus.REJECTED), offsetPageRequestArgumentCaptor.capture());
+        OffsetPageRequest captorValue = offsetPageRequestArgumentCaptor.getValue();
+        assertThat(captorValue.getOffset(), is(from));
+        assertThat(captorValue.getPageSize(), is(size));
+
+        verify(bookingMapper, times(1)).toDtoList(List.of(booking));
+    }
 }

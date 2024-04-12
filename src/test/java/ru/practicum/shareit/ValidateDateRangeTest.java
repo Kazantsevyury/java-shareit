@@ -2,6 +2,7 @@ package ru.practicum.shareit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.practicum.shareit.shared.validation.ValidateDateRange;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;

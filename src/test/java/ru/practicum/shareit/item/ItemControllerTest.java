@@ -1,5 +1,7 @@
 package ru.practicum.shareit.item;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,105 +9,369 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.practicum.shareit.item.dto.GetItemDto;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.ItemUpdateDto;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.service.ItemService;
 
-import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-@WebMvcTest(ItemController.class)
-class ItemControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+@WebMvcTest(controllers = ItemController.class)
+class ItemControllerTest {
 
     @MockBean
     private ItemService itemService;
 
-    @MockBean
-    private ItemBookingFacade itemBookingFacade;
+    @Autowired
+    private MockMvc mvc;
 
-    private GetItemDto getItemDto;
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private long userId;
+
+    private String header;
+
     private ItemDto itemDto;
+
+    private long itemId;
 
     @BeforeEach
     void setUp() {
-        getItemDto = GetItemDto.builder()
-                .id(1L)
-                .name("Mjolnir")
-                .description("Hammer of Thor")
+        userId = 1;
+        header = "X-Sharer-User-Id";
+        itemDto = ItemDto.builder()
+                .name("name")
                 .available(true)
+                .description("description")
                 .build();
-        itemDto = new ItemDto(1L, "Mjolnir", "Hammer of Thor", true, null);
+        itemId = 2;
     }
 
     @Test
-    void addItem_ShouldReturnNewItem() throws Exception {
-        when(itemBookingFacade.addItem(anyLong(), any(ItemDto.class))).thenReturn(itemDto);
+    @SneakyThrows
+    void addItem_ShouldReturnStatus201() {
+        when(itemService.addItem(userId, itemDto))
+                .thenReturn(itemDto);
 
-        mockMvc.perform(post("/items")
-                        .content("{\"name\":\"Mjolnir\",\"description\":\"Hammer of Thor\",\"available\":true}")
+        mvc.perform(post("/items")
+                        .header(header, userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-Sharer-User-Id", 1))
+                        .content(objectMapper.writeValueAsString(itemDto)))
                 .andExpect(status().isCreated())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(objectMapper.writeValueAsString(itemDto)))
                 .andExpect(jsonPath("$.name", is(itemDto.getName())))
-                .andExpect(jsonPath("$.description", is(itemDto.getDescription())));
+                .andExpect(jsonPath("$.available", is(itemDto.getAvailable())));
+
+        verify(itemService, times(1)).addItem(userId, itemDto);
     }
 
     @Test
-    void updateItem_ShouldReturnUpdatedItem() throws Exception {
-        ItemDto itemDto = new ItemDto(1L, "Gungnir", "Spear of Odin", true, null);
-        when(itemService.updateItem(anyLong(), anyLong(), any(ItemUpdateDto.class))).thenReturn(itemDto);
+    @SneakyThrows
+    void addItem_WithoutHeader_ShouldThrowMissingRequestHeaderExceptionAndStatus400() {
+        when(itemService.addItem(userId, itemDto))
+                .thenReturn(itemDto);
 
-        mockMvc.perform(patch("/items/1")
-                        .content("{\"name\":\"Gungnir\",\"description\":\"Spear of Odin\",\"available\":true}")
+        mvc.perform(post("/items")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-Sharer-User-Id", 1))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name", is("Gungnir")))
-                .andExpect(jsonPath("$.description", is("Spear of Odin")));
+                        .content(objectMapper.writeValueAsString(itemDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
+
+        verify(itemService, never()).addItem(any(), any());
     }
 
     @Test
-    void getItemById_ShouldReturnItem() throws Exception {
-        when(itemService.findItemById(anyLong(), anyLong())).thenReturn(getItemDto);
+    @SneakyThrows
+    void addItem_ItemDtoNotValid_ShouldThrowMethodArgumentNotValidExceptionAndStatus400() {
+        itemDto.setAvailable(null);
+        when(itemService.addItem(userId, itemDto))
+                .thenReturn(itemDto);
 
-        mockMvc.perform(get("/items/1")
-                        .header("X-Sharer-User-Id", 1))
+        mvc.perform(post("/items")
+                        .header(header, userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentNotValidException));
+
+        verify(itemService, never()).addItem(any(), any());
+    }
+
+    @Test
+    @SneakyThrows
+    void updateItem_ShouldReturnStatus200() {
+        ItemUpdateDto itemUpdateDto = ItemUpdateDto.builder()
+                .name("updated name")
+                .description("updated description")
+                .available(false)
+                .build();
+        when(itemService.updateItem(userId, itemId,itemUpdateDto))
+                .thenReturn(itemDto);
+
+        mvc.perform(patch("/items/{itemId}", itemId)
+                        .header(header, userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemUpdateDto)))
                 .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(objectMapper.writeValueAsString(itemDto)))
+                .andExpect(jsonPath("$.name", is(itemDto.getName())))
+                .andExpect(jsonPath("$.available", is(itemDto.getAvailable())));
+
+        verify(itemService, times(1)).updateItem(userId, itemId, itemUpdateDto);
+    }
+
+    @Test
+    @SneakyThrows
+    void updateItem_WithoutHeader_ShouldThrowMissingRequestHeaderExceptionAndStatus400() {
+        ItemUpdateDto itemUpdateDto = ItemUpdateDto.builder()
+                .name("updated name")
+                .description("updated description")
+                .available(false)
+                .build();
+        when(itemService.updateItem(userId, itemId,itemUpdateDto))
+                .thenReturn(itemDto);
+
+        mvc.perform(patch("/items/{itemId}", itemId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(itemUpdateDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
+
+        verify(itemService, never()).updateItem(any(),any(), any());
+    }
+
+    @Test
+    @SneakyThrows
+    void getItemById_ShouldReturnStatus200() {
+        GetItemDto getItemDto = new GetItemDto();
+        when(itemService.findItemById(userId, itemId))
+                .thenReturn(getItemDto);
+
+        mvc.perform(get("/items/{itemId}", itemId)
+                        .header(header, userId))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(objectMapper.writeValueAsString(getItemDto)))
                 .andExpect(jsonPath("$.name", is(getItemDto.getName())))
-                .andExpect(jsonPath("$.description", is(getItemDto.getDescription())));
+                .andExpect(jsonPath("$.available", is(getItemDto.getAvailable())));
+
+        verify(itemService, times(1)).findItemById(userId, itemId);
     }
 
     @Test
-    void getAllItemsByOwner_ShouldReturnItemList() throws Exception {
-        List<GetItemDto> items = Arrays.asList(getItemDto);
-        when(itemService.findAllItemsByUserId(anyLong())).thenReturn(items);
+    @SneakyThrows
+    void getItemById_WithoutHeader_ShouldThrowMissingRequestHeaderExceptionAndStatus400() {
+        GetItemDto getItemDto = new GetItemDto();
+        when(itemService.findItemById(userId, itemId))
+                .thenReturn(getItemDto);
 
-        mockMvc.perform(get("/items")
-                        .header("X-Sharer-User-Id", 1))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name", is(getItemDto.getName())))
-                .andExpect(jsonPath("$", hasSize(1)));
+        mvc.perform(get("/items/{itemId}", itemId))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
+
+        verify(itemService, never()).findItemById(any(),any());
     }
 
     @Test
-    void searchItems_ShouldReturnFilteredItems() throws Exception {
-        ItemDto itemDto = new ItemDto(1L, "Mjolnir", "Hammer of Thor", true, null);
-        when(itemService.searchItems(any(String.class))).thenReturn(Arrays.asList(itemDto));
+    @SneakyThrows
+    void getAllItemsByUserId_WithoutParams_ShouldReturnStatus200() {
+        long from = 0L;
+        int size = 10;
+        GetItemDto getItemDto = new GetItemDto();
+        when(itemService.findAllItemsByUserId(userId, from, size))
+                .thenReturn(List.of(getItemDto));
 
-        mockMvc.perform(get("/items/search")
-                        .param("text", "Mjolnir"))
+        mvc.perform(get("/items")
+                        .header(header, userId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name", is("Mjolnir")))
-                .andExpect(jsonPath("$", hasSize(1)));
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(objectMapper.writeValueAsString(List.of(getItemDto))))
+                .andExpect(jsonPath("$.[0].name", is(getItemDto.getName())))
+                .andExpect(jsonPath("$.[0].available", is(getItemDto.getAvailable())));
+
+        verify(itemService, times(1)).findAllItemsByUserId(userId, from, size);
+    }
+
+    @Test
+    @SneakyThrows
+    void getAllItemsByUserId_WithParams_ShouldReturnStatus200() {
+        long from = 1;
+        int size = 5;
+        GetItemDto getItemDto = new GetItemDto();
+        when(itemService.findAllItemsByUserId(userId, from, size))
+                .thenReturn(List.of(getItemDto));
+
+        mvc.perform(get("/items")
+                        .header(header, userId)
+                        .param("from", String.valueOf(from))
+                        .param("size", String.valueOf(size)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(objectMapper.writeValueAsString(List.of(getItemDto))))
+                .andExpect(jsonPath("$.[0].name", is(getItemDto.getName())))
+                .andExpect(jsonPath("$.[0].available", is(getItemDto.getAvailable())));
+
+        verify(itemService, times(1)).findAllItemsByUserId(userId, from, size);
+    }
+
+    @Test
+    @SneakyThrows
+    void getAllItemsByUserId_WithoutHeader_ShouldThrowMissingRequestHeaderExceptionAndStatus400() {
+        long from = 1;
+        int size = 4;
+        GetItemDto getItemDto = new GetItemDto();
+        when(itemService.findAllItemsByUserId(userId, from, size))
+                .thenReturn(List.of(getItemDto));
+
+        mvc.perform(get("/items"))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
+
+        verify(itemService, never()).findAllItemsByUserId(any(), eq(from), eq(size));
+    }
+
+    @Test
+    @SneakyThrows
+    void searchItems_WithoutParams_ShouldReturnStatus200() {
+        String text = "search";
+        long from = 0;
+        int size = 10;
+        when(itemService.searchItems(text, from, size))
+                .thenReturn(List.of(itemDto));
+
+        mvc.perform(get("/items/search")
+                        .header(header, userId)
+                        .param("text", text))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(objectMapper.writeValueAsString(List.of(itemDto))))
+                .andExpect(jsonPath("$.[0].name", is(itemDto.getName())))
+                .andExpect(jsonPath("$.[0].available", is(itemDto.getAvailable())));
+
+        verify(itemService, times(1)).searchItems(text, from, size);
+    }
+
+    @Test
+    @SneakyThrows
+    void searchItems_WithParams_ShouldReturnStatus200() {
+        String text = "search";
+        long from = 1;
+        int size = 5;
+        when(itemService.searchItems(text, from, size))
+                .thenReturn(List.of(itemDto));
+
+        mvc.perform(get("/items/search")
+                        .header(header, userId)
+                        .param("text", text)
+                        .param("from", String.valueOf(from))
+                        .param("size", String.valueOf(size)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(objectMapper.writeValueAsString(List.of(itemDto))))
+                .andExpect(jsonPath("$.[0].name", is(itemDto.getName())))
+                .andExpect(jsonPath("$.[0].available", is(itemDto.getAvailable())));
+
+        verify(itemService, times(1)).searchItems(text, from, size);
+    }
+
+    @Test
+    @SneakyThrows
+    void searchItems_WithoutHeader_ShouldThrowMissingRequestHeaderExceptionAndStatus400() {
+        long from = 0;
+        int size = 10;
+        String text = "search";
+        when(itemService.searchItems(text, from, size))
+                .thenReturn(List.of(itemDto));
+
+        mvc.perform(get("/items/search")
+                        .param("text", text))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
+
+        verify(itemService, never()).searchItems(any(), any(), any());
+    }
+
+    @Test
+    @SneakyThrows
+    void searchItems_WithoutText_ShouldThrowMissingServletRequestParameterExceptionExceptionAndStatus400() {
+        long from = 0;
+        int size = 10;
+        String text = "search";
+        when(itemService.searchItems(text, from, size))
+                .thenReturn(List.of(itemDto));
+
+        mvc.perform(get("/items/search")
+                        .header(header, userId))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof
+                        MissingServletRequestParameterException));
+
+        verify(itemService, never()).searchItems(any(), any(), any());
+    }
+
+    @Test
+    @SneakyThrows
+    void addCommentToItem_ShouldReturnStatus201() {
+        AddCommentDto addCommentDto = new AddCommentDto("comment");
+        CommentDto commentDto = new CommentDto();
+        when(itemService.addCommentToItem(userId, itemId, addCommentDto))
+                .thenReturn(commentDto);
+
+        mvc.perform(post("/items/{itemId}/comment", itemId)
+                        .header(header, userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(addCommentDto)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(objectMapper.writeValueAsString(commentDto)))
+                .andExpect(jsonPath("$.authorName", is(commentDto.getAuthorName())))
+                .andExpect(jsonPath("$.created", is(commentDto.getCreated())));
+
+        verify(itemService, times(1)).addCommentToItem(userId, itemId, addCommentDto);
+    }
+
+    @Test
+    @SneakyThrows
+    void addCommentToItem_WithoutHeader_ShouldThrowMissingRequestHeaderExceptionAndReturnStatus400() {
+        AddCommentDto addCommentDto = new AddCommentDto("comment");
+        CommentDto commentDto = new CommentDto();
+        when(itemService.addCommentToItem(userId, itemId, addCommentDto))
+                .thenReturn(commentDto);
+
+        mvc.perform(post("/items/{itemId}/comment", itemId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(addCommentDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
+
+        verify(itemService, never()).addCommentToItem(any(), any(), any());
+    }
+
+    @Test
+    @SneakyThrows
+    void addCommentToItem_AddCommentDtoNotValid_ShouldThrowMethodArgumentNotValidExceptionAndReturnStatus400() {
+        AddCommentDto addCommentDto = new AddCommentDto(null);
+        CommentDto commentDto = new CommentDto();
+        when(itemService.addCommentToItem(userId, itemId, addCommentDto))
+                .thenReturn(commentDto);
+
+        mvc.perform(post("/items/{itemId}/comment", itemId)
+                        .header(header, userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(addCommentDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentNotValidException));
+
+        verify(itemService, never()).addCommentToItem(any(), any(), any());
     }
 }

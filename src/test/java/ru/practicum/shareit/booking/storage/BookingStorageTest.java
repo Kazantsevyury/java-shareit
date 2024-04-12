@@ -8,22 +8,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import ru.practicum.shareit.OffsetPageRequest;
-import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.ItemStorage;
-import ru.practicum.shareit.user.storage.UserStorage;
+import ru.practicum.shareit.shared.OffsetPageRequest;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.storage.UserStorage;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import static java.time.LocalDateTime.now;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
@@ -49,6 +47,10 @@ class BookingStorageTest {
     private User savedUser2;
 
     private Booking savedBooking1;
+
+    private Booking savedBooking2;
+
+    private Booking savedBooking3;
 
     private OffsetPageRequest pageRequest;
 
@@ -77,10 +79,12 @@ class BookingStorageTest {
         booking2.setItem(savedItem1);
         booking2.setBooker(savedUser2);
         booking2.setStart(now().minusDays(1));
+        savedBooking2 = bookingStorage.save(booking2);
 
         Booking booking3 = createBooking(3L);
         booking3.setItem(savedItem2);
         booking3.setBooker(savedUser1);
+        savedBooking3 = bookingStorage.save(booking3);
         pageRequest = OffsetPageRequest.of(0L, 1);
     }
 
@@ -99,6 +103,14 @@ class BookingStorageTest {
     }
 
     @Test
+    void findAllByItemId_ShouldReturnListOfBookings() {
+        List<Booking> bookings = bookingStorage.findAllByItemId(savedItem1.getId());
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking1, savedBooking2)));
+    }
+
+    @Test
     void findAllByItemId_NoBookings_ShouldReturnEmptyList() {
 
         List<Booking> bookings = bookingStorage.findAllByItemId(999L);
@@ -107,6 +119,13 @@ class BookingStorageTest {
         assertThat(bookings, emptyIterable());
     }
 
+    @Test
+    void findAllByItemIdAndBookerId_ShouldReturnListOfBookings() {
+        List<Booking> bookings = bookingStorage.findAllByItemIdAndBookerId(savedItem1.getId(), savedUser2.getId());
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking1, savedBooking2)));
+    }
 
     @Test
     void findAllByItemIdAndBookerId_WhenItemsNotBelongToBooker_ShouldReturnEmptyList() {
@@ -116,6 +135,29 @@ class BookingStorageTest {
         assertThat(bookings, emptyIterable());
     }
 
+    @Test
+    void findAllByItemIdIn_ShouldReturnListOfBookings() {
+        List<Booking> bookings = bookingStorage.findAllByItemIdIn(List.of(savedItem1.getId(), savedItem2.getId()));
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking1, savedBooking2, savedBooking3)));
+    }
+
+    @Test
+    void findAllByItemIdIn_UnknownId_ShouldReturnEmptyList() {
+        List<Booking> bookings = bookingStorage.findAllByItemIdIn(List.of(savedItem1.getId(), savedItem2.getId()));
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking1, savedBooking2, savedBooking3)));
+    }
+
+    @Test
+    void findAllByItemOwnerId_WithPageable_ShouldReturnListOfBookingsOrderByStartDesc() {
+        List<Booking> bookings = bookingStorage.findAllByItemOwnerId(savedUser1.getId(), pageRequest);
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking3)));
+    }
 
     @Test
     void findAllByItemOwnerId_OwnerNotFoundWithPageable_ShouldReturnEmptyList() {
@@ -126,22 +168,79 @@ class BookingStorageTest {
     }
 
     @Test
-    void findBookingById_ShouldReturnBooking_WhenIdIsProvided() {
-        Optional<Booking> foundBookingOpt = bookingStorage.findBookingById(savedBooking1.getId());
+    void findCurrentBookingsByOwnerId_ShouldReturnListOfBookingWhereStartIsBeforeNowAndEndAfterNowWithPageable() {
+        List<Booking> bookings = bookingStorage.findCurrentBookingsByOwnerId(savedUser1.getId(), now(), now(),
+                pageRequest);
 
-        assertTrue(foundBookingOpt.isPresent(), "Booking должен быть найден.");
-        Booking foundBooking = foundBookingOpt.get();
-        assertEquals(savedBooking1.getId(), foundBooking.getId(), "ID бронирования должны совпадать.");
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking2)));
     }
 
     @Test
-    void findAllByItemId_ShouldReturnBookings_WhenItemIdIsProvided() {
-        List<Booking> bookings = bookingStorage.findAllByItemId(savedItem1.getId());
+    void findPastBookingsByOwnerId_ShouldReturnListOfBookingWhereEndBeforeNowWithPageable() {
+        List<Booking> bookings = bookingStorage.findPastBookingsByOwnerId(savedUser1.getId(), now(), pageRequest);
 
-        assertThat(bookings, not(empty()));
-        assertThat("Все бронирования должны принадлежать одному предмету.",
-                bookings.stream().allMatch(booking -> booking.getItem().getId().equals(savedItem1.getId())),
-                is(true));
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking1)));
+    }
+
+    @Test
+    void findFutureBookingsByOwnerId_ShouldReturnBookingWhereStartIsAfterNowWithPageable() {
+        List<Booking> bookings = bookingStorage.findFutureBookingsByOwnerId(savedUser1.getId(), now(), pageRequest);
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking3)));
+    }
+
+    @Test
+    void findBookingsByOwnerIdAndStatus_ShouldReturnListOfBookingWithStatusWaitingWithPageable() {
+        List<Booking> bookings = bookingStorage.findBookingsByOwnerIdAndStatus(savedUser1.getId(), BookingStatus.WAITING,
+                pageRequest);
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking3)));
+    }
+
+    @Test
+    void findAllByBookerId_WithPageable_ShouldReturnListOfBookingsOrderByStartDesc() {
+        List<Booking> bookings = bookingStorage.findAllByBookerId(savedUser2.getId(), pageRequest);
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking2)));
+    }
+
+    @Test
+    void findCurrentBookingsByBookerId_ShouldReturnListOfBookingWhereStartIsBeforeNowAndEndAfterNowWithPageable() {
+        List<Booking> bookings = bookingStorage.findCurrentBookingsByBookerId(savedUser2.getId(), now(), now(),
+                pageRequest);
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking2)));
+    }
+
+    @Test
+    void findPastBookingsByBookerId_ShouldReturnListOfBookingWhereEndBeforeNowWithPageable() {
+        List<Booking> bookings = bookingStorage.findPastBookingsByBookerId(savedUser2.getId(), now(), pageRequest);
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking1)));
+    }
+
+    @Test
+    void findFutureBookingsByBookerId_ShouldReturnBookingWhereStartIsAfterNowWithPageable() {
+        List<Booking> bookings = bookingStorage.findFutureBookingsByOwnerId(savedUser1.getId(), now(), pageRequest);
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking3)));
+    }
+
+    @Test
+    void findBookingsByBookerIdAndStatus_ShouldReturnListOfBookingWithStatusWaitingWithPageable() {
+        List<Booking> bookings = bookingStorage.findBookingsByBookerIdAndStatus(savedUser1.getId(), BookingStatus.WAITING,
+                pageRequest);
+
+        assertThat(bookings, notNullValue());
+        assertThat(bookings, is(List.of(savedBooking3)));
     }
 
     private Item createItem(Long id) {
@@ -165,15 +264,5 @@ class BookingStorageTest {
                 .start(now().plusDays(id))
                 .end(now().plusDays(5 + id))
                 .build();
-    }
-
-    private Booking createBooking(Item item, User booker, LocalDateTime start, LocalDateTime end, BookingStatus status) {
-        Booking booking = new Booking();
-        booking.setItem(item);
-        booking.setBooker(booker);
-        booking.setStatus(status);
-        booking.setStart(start);
-        booking.setEnd(end);
-        return booking;
     }
 }

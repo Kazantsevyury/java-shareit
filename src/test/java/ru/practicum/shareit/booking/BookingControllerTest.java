@@ -8,19 +8,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ru.practicum.shareit.booking.dto.AddBookingDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.GetBookingState;
 import ru.practicum.shareit.booking.service.BookingService;
-import ru.practicum.shareit.exception.exceptions.ItemOwnershipException;
-import ru.practicum.shareit.item.ItemBookingFacade;
-
+import ru.practicum.shareit.shared.exception.ItemUnavailableException;
+import ru.practicum.shareit.shared.exception.NotAuthorizedException;
+import ru.practicum.shareit.shared.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
@@ -33,6 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = BookingController.class)
@@ -40,8 +44,7 @@ class BookingControllerTest {
 
     @MockBean
     private BookingService bookingService;
-    @MockBean
-    private ItemBookingFacade itemBookingFacade;
+
     @Autowired
     private MockMvc mvc;
 
@@ -71,6 +74,39 @@ class BookingControllerTest {
 
     @Test
     @SneakyThrows
+    void addNewBooking_ShouldReturnStatus201() {
+        when(bookingService.addBooking(userId, addBookingDto))
+                .thenReturn(bookingDto);
+
+        mvc.perform(post("/bookings")
+                        .header(header, userId)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(addBookingDto)))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(objectMapper.writeValueAsString(bookingDto)));
+
+        verify(bookingService, times(1)).addBooking(userId, addBookingDto);
+    }
+
+    @Test
+    @SneakyThrows
+    void addNewBooking_BookingStartInPast_ShouldThrowMethodArgumentNotValidException() {
+        addBookingDto.setStart(LocalDateTime.now().minusDays(1));
+
+        mvc.perform(post("/bookings")
+                        .header(header, userId)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(addBookingDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentNotValidException))
+                .andExpect(jsonPath("$.errors.addBookingDto", is("Задан некорректный интервал бронирования.")));
+
+        verify(bookingService, never()).addBooking(any(), any());
+    }
+
+    @Test
+    @SneakyThrows
     void addNewBooking_WithoutHeader_ShouldThrowMissingRequestHeaderException() {
 
         mvc.perform(post("/bookings")
@@ -79,39 +115,39 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
 
-        verify(itemBookingFacade, never()).addBooking(any(), any());
+        verify(bookingService, never()).addBooking(any(), any());
     }
-/*
+
     @Test
     @SneakyThrows
     void addNewBooking_WhenNotFoundThrown_ShouldReturn404Status() {
-        when(itemBookingFacade.addBooking(userId, addBookingDto))
-                .thenThrow(BookingNotFoundException.class);
+        when(bookingService.addBooking(userId, addBookingDto))
+                .thenThrow(NotFoundException.class);
 
         mvc.perform(post("/bookings")
                         .header(header, userId)
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(addBookingDto)))
                 .andExpect(status().isNotFound())
-                .andExpect(result -> assertTrue(result.getResolvedException() instanceof BookingNotFoundException));
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException));
 
-        verify(itemBookingFacade, times(1)).addBooking(userId, addBookingDto);
-    }*/
+        verify(bookingService, times(1)).addBooking(userId, addBookingDto);
+    }
 
     @Test
     @SneakyThrows
     void addNewBooking_WhenNotAuthorizedThrown_ShouldReturn404() {
-        when(itemBookingFacade.addBooking(userId, addBookingDto))
-                .thenThrow(ItemOwnershipException.class);
+        when(bookingService.addBooking(userId, addBookingDto))
+                .thenThrow(NotAuthorizedException.class);
 
         mvc.perform(post("/bookings")
                         .header(header, userId)
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(addBookingDto)))
                 .andExpect(status().isNotFound())
-                .andExpect(result -> assertTrue(result.getResolvedException() instanceof ItemOwnershipException));
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotAuthorizedException));
 
-        verify(itemBookingFacade, times(1)).addBooking(userId, addBookingDto);
+        verify(bookingService, times(1)).addBooking(userId, addBookingDto);
     }
 
     @Test
@@ -119,7 +155,7 @@ class BookingControllerTest {
     void acknowledgeBooking_WithAllParams_ShouldReturnStatus200() {
         Long bookingId = 2L;
         Boolean approved = true;
-        when(itemBookingFacade.acknowledgeBooking(userId, bookingId, approved))
+        when(bookingService.acknowledgeBooking(userId, bookingId, approved))
                 .thenReturn(bookingDto);
 
         mvc.perform(patch("/bookings/{bookingId}", bookingId)
@@ -129,15 +165,15 @@ class BookingControllerTest {
                 .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(objectMapper.writeValueAsString(bookingDto)));
 
-        verify(itemBookingFacade, times(1)).acknowledgeBooking(userId, bookingId, approved);
+        verify(bookingService, times(1)).acknowledgeBooking(userId, bookingId, approved);
     }
-/*
+
     @Test
     @SneakyThrows
     void acknowledgeBooking_WhenItemUnavailableExceptionThrown_ShouldReturn404() {
         Long bookingId = 2L;
         Boolean approved = true;
-        when(itemBookingFacade.acknowledgeBooking(userId, bookingId, approved))
+        when(bookingService.acknowledgeBooking(userId, bookingId, approved))
                 .thenThrow(ItemUnavailableException.class);
 
         mvc.perform(patch("/bookings/{bookingId}", bookingId)
@@ -146,16 +182,32 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof ItemUnavailableException));
 
-        verify(itemBookingFacade, times(1)).acknowledgeBooking(userId, bookingId, approved);
+        verify(bookingService, times(1)).acknowledgeBooking(userId, bookingId, approved);
     }
-*/
+
+    @Test
+    @SneakyThrows
+    void acknowledgeBooking_WhenUnexpectedException_ShouldReturn500() {
+        Long bookingId = 2L;
+        Boolean approved = true;
+        when(bookingService.acknowledgeBooking(userId, bookingId, approved))
+                .thenThrow(RuntimeException.class);
+
+        mvc.perform(patch("/bookings/{bookingId}", bookingId)
+                        .header(header, userId)
+                        .param("approved", approved.toString()))
+                .andExpect(status().isInternalServerError())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof RuntimeException));
+
+        verify(bookingService, times(1)).acknowledgeBooking(userId, bookingId, approved);
+    }
 
     @Test
     @SneakyThrows
     void acknowledgeBooking_WithoutHeader_ShouldThrowMissingRequestHeaderException() {
         Long bookingId = 2L;
         Boolean approved = true;
-        when(itemBookingFacade.acknowledgeBooking(userId, bookingId, approved))
+        when(bookingService.acknowledgeBooking(userId, bookingId, approved))
                 .thenReturn(bookingDto);
 
         mvc.perform(patch("/bookings/{bookingId}", bookingId)
@@ -163,7 +215,7 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
 
-        verify(itemBookingFacade, never()).acknowledgeBooking(any(), any(), any());
+        verify(bookingService, never()).acknowledgeBooking(any(), any(), any());
     }
 
     @Test
@@ -171,7 +223,7 @@ class BookingControllerTest {
     void acknowledgeBooking_WithoutApproved_ShouldThrowMissingServletRequestParameterException() {
         Long bookingId = 2L;
         Boolean approved = true;
-        when(itemBookingFacade.acknowledgeBooking(userId, bookingId, approved))
+        when(bookingService.acknowledgeBooking(userId, bookingId, approved))
                 .thenReturn(bookingDto);
 
         mvc.perform(patch("/bookings/{bookingId}", bookingId)
@@ -180,14 +232,14 @@ class BookingControllerTest {
                 .andExpect(result -> assertTrue(result.getResolvedException()
                         instanceof MissingServletRequestParameterException));
 
-        verify(itemBookingFacade, never()).acknowledgeBooking(any(), any(), any());
+        verify(bookingService, never()).acknowledgeBooking(any(), any(), any());
     }
 
     @Test
     @SneakyThrows
     void getBookingById_WithAllParameters_ShouldReturnStatus200() {
         Long bookingId = 2L;
-        when(itemBookingFacade.getBookingById(userId, bookingId))
+        when(bookingService.getBookingById(userId, bookingId))
                 .thenReturn(bookingDto);
 
         mvc.perform(get("/bookings/{bookingId}", bookingId)
@@ -196,7 +248,7 @@ class BookingControllerTest {
                 .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(objectMapper.writeValueAsString(bookingDto)));
 
-        verify(itemBookingFacade, times(1)).getBookingById(userId, bookingId);
+        verify(bookingService, times(1)).getBookingById(userId, bookingId);
     }
 
     @Test
@@ -208,7 +260,7 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
 
-        verify(itemBookingFacade, never()).getBookingById(any(), any());
+        verify(bookingService, never()).getBookingById(any(), any());
     }
 
     @Test
@@ -218,7 +270,7 @@ class BookingControllerTest {
         Long from = 1L;
         Integer size = 5;
         boolean isOwner = false;
-        when(itemBookingFacade.getAllBookingsFromUser(userId, state, from, size, isOwner))
+        when(bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner))
                 .thenReturn(List.of(bookingDto));
 
         mvc.perform(get("/bookings")
@@ -230,7 +282,7 @@ class BookingControllerTest {
                 .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(objectMapper.writeValueAsString(List.of(bookingDto))));
 
-        verify(itemBookingFacade, times(1)).getAllBookingsFromUser(userId, state, from, size, isOwner);
+        verify(bookingService, times(1)).getAllBookingsFromUser(userId, state, from, size, isOwner);
     }
 
     @Test
@@ -240,7 +292,7 @@ class BookingControllerTest {
         int size = 10;
         GetBookingState state = GetBookingState.ALL;
         boolean isOwner = false;
-        when(itemBookingFacade.getAllBookingsFromUser(userId, state, from, size, isOwner))
+        when(bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner))
                 .thenReturn(List.of(bookingDto));
 
         mvc.perform(get("/bookings")
@@ -249,7 +301,7 @@ class BookingControllerTest {
                 .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(objectMapper.writeValueAsString(List.of(bookingDto))));
 
-        verify(itemBookingFacade, times(1)).getAllBookingsFromUser(userId, state, from, size,
+        verify(bookingService, times(1)).getAllBookingsFromUser(userId, state, from, size,
                 isOwner);
     }
 
@@ -260,7 +312,7 @@ class BookingControllerTest {
         int size = 5;
         GetBookingState state = GetBookingState.ALL;
         boolean isOwner = false;
-        when(itemBookingFacade.getAllBookingsFromUser(userId, state, from, size, isOwner))
+        when(bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner))
                 .thenReturn(List.of(bookingDto));
 
         mvc.perform(get("/bookings")
@@ -271,7 +323,7 @@ class BookingControllerTest {
                 .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(objectMapper.writeValueAsString(List.of(bookingDto))));
 
-        verify(itemBookingFacade, times(1)).getAllBookingsFromUser(userId, state, from, size,
+        verify(bookingService, times(1)).getAllBookingsFromUser(userId, state, from, size,
                 isOwner);
     }
 
@@ -290,9 +342,9 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
 
-        verify(itemBookingFacade, never()).getAllBookingsFromUser(any(), any(), any(), any(), eq(isOwner));
+        verify(bookingService, never()).getAllBookingsFromUser(any(), any(), any(), any(), eq(isOwner));
     }
-/*
+
     @Test
     @SneakyThrows
     void getAllBookingsFromUser_UnknownState_ShouldThrowMethodArgumentTypeMismatchException() {
@@ -308,8 +360,8 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentTypeMismatchException));
 
-        verify(itemBookingFacade, never()).getAllBookingsFromUser(any(), any(), any(), any(), eq(isOwner));
-    }*/
+        verify(bookingService, never()).getAllBookingsFromUser(any(), any(), any(), any(), eq(isOwner));
+    }
 
     @Test
     @SneakyThrows
@@ -318,7 +370,7 @@ class BookingControllerTest {
         Long from = 1L;
         Integer size = 5;
         boolean isOwner = true;
-        when(itemBookingFacade.getAllBookingsFromUser(userId, state, from, size, isOwner))
+        when(bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner))
                 .thenReturn(List.of(bookingDto));
 
         mvc.perform(get("/bookings/owner")
@@ -330,7 +382,7 @@ class BookingControllerTest {
                 .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(objectMapper.writeValueAsString(List.of(bookingDto))));
 
-        verify(itemBookingFacade, times(1)).getAllBookingsFromUser(userId, state, from, size, isOwner);
+        verify(bookingService, times(1)).getAllBookingsFromUser(userId, state, from, size, isOwner);
     }
 
     @Test
@@ -340,7 +392,7 @@ class BookingControllerTest {
         Integer size = 10;
         GetBookingState state = GetBookingState.ALL;
         boolean isOwner = true;
-        when(itemBookingFacade.getAllBookingsFromUser(userId, state, from, size, isOwner))
+        when(bookingService.getAllBookingsFromUser(userId, state, from, size, isOwner))
                 .thenReturn(List.of(bookingDto));
 
         mvc.perform(get("/bookings/owner")
@@ -349,7 +401,7 @@ class BookingControllerTest {
                 .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(objectMapper.writeValueAsString(List.of(bookingDto))));
 
-        verify(itemBookingFacade, times(1)).getAllBookingsFromUser(userId, state, from, size,
+        verify(bookingService, times(1)).getAllBookingsFromUser(userId, state, from, size,
                 isOwner);
     }
 
@@ -368,9 +420,9 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof MissingRequestHeaderException));
 
-        verify(itemBookingFacade, never()).getAllBookingsFromUser(any(), any(), any(), any(), eq(isOwner));
+        verify(bookingService, never()).getAllBookingsFromUser(any(), any(), any(), any(), eq(isOwner));
     }
-/*
+
     @Test
     @SneakyThrows
     void getAllOwnerBookings_UnknownState_ShouldThrowMethodArgumentTypeMismatchException() {
@@ -386,6 +438,6 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof MethodArgumentTypeMismatchException));
 
-        verify(itemBookingFacade, never()).getAllBookingsFromUser(any(), any(), any(), any(), eq(isOwner));
-    }*/
+        verify(bookingService, never()).getAllBookingsFromUser(any(), any(), any(), any(), eq(isOwner));
+    }
 }

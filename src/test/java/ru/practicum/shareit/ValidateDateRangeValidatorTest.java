@@ -6,6 +6,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.shareit.shared.validation.ValidateDateRange;
+import ru.practicum.shareit.shared.validation.ValidateDateRangeValidator;
 
 import javax.validation.ConstraintValidatorContext;
 import java.time.LocalDateTime;

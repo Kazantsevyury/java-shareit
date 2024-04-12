@@ -57,7 +57,7 @@ class UserControllerTest {
 
     @Test
     @SneakyThrows
-    void shouldCreateUserWhenDataIsValid() {
+    void addUser_ValidUser_ShouldReturnDto() {
         when(userService.addUser(userDto))
                 .thenReturn(userDto);
 
@@ -76,7 +76,7 @@ class UserControllerTest {
 
     @Test
     @SneakyThrows
-    void shouldThrowExceptionWhenUserDataIsNotValid() {
+    void addUser_NotValidUser_ShouldThrowMethodArgumentNotValidException() {
         userDto.setEmail(null);
 
         mvc.perform(post("/users")
@@ -92,7 +92,7 @@ class UserControllerTest {
 
     @Test
     @SneakyThrows
-    void shouldUpdateUserWhenDataIsValid() {
+    void updateUser_ShouldReturnUserDto() {
         UserUpdateDto updateDto = new UserUpdateDto();
         when(userService.updateUser(userId, updateDto))
                 .thenReturn(userDto);
@@ -111,7 +111,7 @@ class UserControllerTest {
 
     @Test
     @SneakyThrows
-    void shouldReturnUserWhenUserIdIsProvided() {
+    void getUserById_shouldReturnUserDto() {
         when(userService.findUserById(userId))
                 .thenReturn(userDto);
 
@@ -129,7 +129,7 @@ class UserControllerTest {
 
     @Test
     @SneakyThrows
-    shouldReturnListOfUsersWhenRequested() {
+    void getAllUsers_ShouldReturnListOfUserDto() {
         when(userService.findAllUsers())
                 .thenReturn(List.of(userDto));
 
@@ -145,7 +145,7 @@ class UserControllerTest {
 
     @Test
     @SneakyThrows
-    void shouldDeleteUserWhenUserIdIsProvided() {
+    void deleteUserById_ShouldReturnOkStatus() {
         mvc.perform(delete("/users/{userId}", userId))
                 .andExpect(status().isOk());
 

@@ -42,7 +42,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldCreateUserWithIdWhenUserIsValid() {
+    void addUser_ShouldReturnUserWithId() {
         UserDto savedUser = userService.addUser(userDto);
 
         assertThat(savedUser.getId(), notNullValue());
@@ -52,7 +52,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldUpdateUserWithNameAndEmailWhenBothFieldsProvided() {
+    void updateUser_WithNameAndEmail_ShouldUpdateNameAndEmail() {
         UserDto savedUser = userService.addUser(userDto);
         UserDto updatedUser = userService.updateUser(savedUser.getId(), updateDto);
 
@@ -62,7 +62,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldUpdateUserEmailOnlyWhenOnlyEmailProvided() {
+    void updateUser_WithOnlyEmail_ShouldUpdateEmail() {
         updateDto.setName(null);
         UserDto savedUser = userService.addUser(userDto);
         UserDto updatedUser = userService.updateUser(savedUser.getId(), updateDto);
@@ -73,7 +73,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldUpdateUserNameOnlyWhenOnlyNameProvided() {
+    void updateUser_WithOnlyName_ShouldUpdateName() {
         updateDto.setEmail(null);
         UserDto savedUser = userService.addUser(userDto);
         UserDto updatedUser = userService.updateUser(savedUser.getId(), updateDto);
@@ -84,7 +84,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldNotUpdateAnyUserFieldsWhenBothFieldsAreNull() {
+    void updateUser_WithNullEmailAndName_ShouldNotUpdateAnyFields() {
         updateDto.setEmail(null);
         updateDto.setName(null);
         UserDto savedUser = userService.addUser(userDto);
@@ -96,7 +96,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldReturnUserWhenUserExistsById() {
+    void findUserById_UserFound_ShouldReturnUser() {
         UserDto savedUser = userService.addUser(userDto);
 
         UserDto foundUser = userService.findUserById(savedUser.getId());
@@ -107,7 +107,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenUserDoesNotExistById() {
+    void findUserById_UserNotFound_ShouldThrowNotFoundException() {
         NotFoundException e = assertThrows(NotFoundException.class,
                 () -> userService.findUserById(999L));
 
@@ -115,7 +115,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldReturnListOfOneUserWhenOnlyOneUserExists() {
+    void findAllUsers_ShouldReturnListOfOne() {
         UserDto savedUser = userService.addUser(userDto);
 
         List<UserDto> users = userService.findAllUsers();
@@ -125,7 +125,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldReturnListOfUsersWhenMultipleUsersExist() {
+    void findAllUsers_ShouldReturnUserList() {
         UserDto savedUser = userService.addUser(userDto);
         UserDto userDto2 = UserDto.builder()
                 .name("username2")
@@ -140,7 +140,8 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldReturnEmptyListWhenNoUsersExist() {
+    void findAllUsers_WithNoUsers_ShouldReturnEmptyList() {
+
         List<UserDto> users = userService.findAllUsers();
 
         assertThat(users, notNullValue());
@@ -148,7 +149,7 @@ class UserServiceImplIntegrationTest {
     }
 
     @Test
-    void shouldDeleteUserAndReturnEmptyUserListWhenUserExists() {
+    void deleteUserById_UserExits_ShouldDeleteUser() {
         UserDto savedUser = userService.addUser(userDto);
 
         userService.deleteUserById(savedUser.getId());
