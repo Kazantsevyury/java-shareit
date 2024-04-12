@@ -96,6 +96,19 @@ class BookingStorageTest {
     }
 
     @Test
+    void findBookingById_ShouldReturnBooking() {
+        Optional<Booking> optionalBooking = bookingStorage.findBookingById(savedBooking1.getId());
+
+        assertTrue(optionalBooking.isPresent());
+        Booking booking = optionalBooking.get();
+        assertThat(booking.getStatus(), is(savedBooking1.getStatus()));
+        assertThat(booking.getEnd(), notNullValue());
+        assertThat(booking.getStart(), notNullValue());
+        assertThat(booking.getItem(), is(savedItem1));
+        assertThat(booking.getBooker(), is(savedUser2));
+    }
+
+    @Test
     void findBookingById_BookingNotFound_ShouldReturnEmptyOptional() {
         Optional<Booking> optionalBooking = bookingStorage.findBookingById(999L);
 

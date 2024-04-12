@@ -11,7 +11,6 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ItemMapperTest {
 

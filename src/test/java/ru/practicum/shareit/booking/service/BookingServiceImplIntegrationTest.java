@@ -12,12 +12,11 @@ import ru.practicum.shareit.booking.dto.AddBookingDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.GetBookingState;
 import ru.practicum.shareit.booking.model.BookingStatus;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.storage.ItemStorage;
 import ru.practicum.shareit.shared.exception.ItemUnavailableException;
 import ru.practicum.shareit.shared.exception.NotAuthorizedException;
 import ru.practicum.shareit.shared.exception.NotFoundException;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.storage.ItemStorage;
-
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserStorage;
 

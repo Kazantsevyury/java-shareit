@@ -92,6 +92,15 @@ class CommentStorageTest {
     }
 
     @Test
+    void findAllByItemId_ShouldReturnAllCommentsOnItem2() {
+        List<Comment> comments = commentStorage.findAllByItemId(savedItem2.getId());
+
+        assertThat(comments, notNullValue());
+        assertThat(comments.size(), is(2));
+        assertThat(comments, is(List.of(savedComment2, savedComment3)));
+    }
+
+    @Test
     void findAllByItemId_WhenItemWithoutComments_ShouldReturnEmptyList() {
         List<Comment> comments = commentStorage.findAllByItemId(savedItem3.getId());
 
@@ -105,6 +114,24 @@ class CommentStorageTest {
 
         assertThat(comments, notNullValue());
         assertThat(comments.size(), is(0));
+    }
+
+    @Test
+    void findAllByItemIdIn_ShouldReturnAllCommentsFromItem1AndItem2() {
+        List<Comment> comments = commentStorage.findAllByItemIdIn(List.of(savedItem1.getId(), savedItem2.getId()));
+
+        assertThat(comments, notNullValue());
+        assertThat(comments.size(), is(3));
+        assertThat(comments, is(List.of(savedComment1, savedComment2, savedComment3)));
+    }
+
+    @Test
+    void findAllByItemIdIn_OnlyFromItem2_ShouldReturnAllCommentsFromItem2() {
+        List<Comment> comments = commentStorage.findAllByItemIdIn(List.of(savedItem2.getId()));
+
+        assertThat(comments, notNullValue());
+        assertThat(comments.size(), is(2));
+        assertThat(comments, is(List.of(savedComment2, savedComment3)));
     }
 
     @Test
