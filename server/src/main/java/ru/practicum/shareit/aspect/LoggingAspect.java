@@ -1,4 +1,4 @@
-package ru.practicum.shareit;
+package ru.practicum.shareit.aspect;
 
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
