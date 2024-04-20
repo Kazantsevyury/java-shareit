@@ -13,10 +13,13 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 @Builder
 public class UserDto {
+
     private Long id;
-    @NotBlank(message = "Имя пользователя не может быть пустым.")
+
+    @NotBlank
     private String name;
-    @NotBlank(message = "Должен быть обязательно указан email.")
-    @Email(message = "Некорректный формат электронной почты.", regexp = "^[\\w\\-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")
+
+    @NotBlank
+    @Email(regexp = "^[\\w\\-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")
     private String email;
 }

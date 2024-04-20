@@ -11,6 +11,6 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 public class AddCommentDto {
 
-    @NotBlank(message = "Пустой отзыв.")
+    @NotBlank
     private String text;
 }

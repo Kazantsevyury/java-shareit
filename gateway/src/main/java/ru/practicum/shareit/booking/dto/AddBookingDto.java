@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.practicum.shareit.shared.validation.ValidateDateRange;
+import ru.practicum.shareit.booking.validation.ValidateDateRange;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -16,12 +16,12 @@ import java.time.LocalDateTime;
 @ValidateDateRange(start = "start", end = "end", message = "Задан некорректный интервал бронирования.")
 public class AddBookingDto {
 
-    @NotNull(message = "Не указан идентификатор вещи.")
+    @NotNull
     private Long itemId;
 
-    @NotNull(message = "Не указана дата начала бронирования.")
+    @NotNull
     private LocalDateTime start;
 
-    @NotNull(message = "Не указана дата окончания бронирования.")
+    @NotNull
     private LocalDateTime end;
 }

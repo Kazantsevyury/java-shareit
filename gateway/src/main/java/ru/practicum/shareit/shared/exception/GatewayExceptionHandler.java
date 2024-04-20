@@ -2,6 +2,7 @@ package ru.practicum.shareit.shared.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import javax.validation.ConstraintViolationException;
@@ -17,34 +19,7 @@ import java.util.Map;
 
 @RestControllerAdvice
 @Slf4j
-public class ApplicationExceptionHandler {
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleUserNotFoundException(NotFoundException e) {
-        ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.getErrors().put("errorMessage", e.getLocalizedMessage());
-        log.error(e.getLocalizedMessage());
-        return errorResponse;
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleItemUnavailableException(ItemUnavailableException e) {
-        ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.getErrors().put("Error message", e.getLocalizedMessage());
-        log.error(e.getLocalizedMessage());
-        return errorResponse;
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleNotAuthorizedException(NotAuthorizedException e) {
-        ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.getErrors().put("ErrorMessage", e.getLocalizedMessage());
-        log.error(e.getLocalizedMessage());
-        return errorResponse;
-    }
+public class GatewayExceptionHandler {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -75,7 +50,7 @@ public class ApplicationExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleItemUnavailableException(ConstraintViolationException e) {
         ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.getErrors().put("Error message", e.getLocalizedMessage());
+        errorResponse.getErrors().put("errorMessage", e.getLocalizedMessage());
         log.error(e.getLocalizedMessage());
         return errorResponse;
     }
@@ -96,6 +71,14 @@ public class ApplicationExceptionHandler {
         errorResponse.getErrors().put(e.getParameterName(), e.getLocalizedMessage());
         log.error(e.getLocalizedMessage());
         return errorResponse;
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(HttpStatusCodeException e) {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.getErrors().put("errorMessage", e.getResponseBodyAsString());
+        log.error(e.getLocalizedMessage());
+        return ResponseEntity.status(e.getStatusCode()).body(errorResponse);
     }
 
     @ExceptionHandler

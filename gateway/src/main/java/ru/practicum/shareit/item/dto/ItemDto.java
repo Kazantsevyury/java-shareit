@@ -16,13 +16,13 @@ public class ItemDto {
 
     private Long id;
 
-    @NotBlank(message = "Название вещи не может быть пустым.")
+    @NotBlank
     private String name;
 
-    @NotBlank(message = "Описание вещи не может быть пустым.")
+    @NotBlank
     private String description;
 
-    @NotNull(message = "У вещи обязательно должен быть указан статус доступности.")
+    @NotNull
     private Boolean available;
 
     private Long requestId;

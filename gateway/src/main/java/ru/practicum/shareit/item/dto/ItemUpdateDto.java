@@ -13,9 +13,9 @@ import javax.validation.constraints.NotNull;
 @NoArgsConstructor
 @Builder
 public class ItemUpdateDto {
-    @NotBlank(message = "Название не может быть пустым.")
+    @NotBlank
     private String name;
     private String description;
-    @NotNull(message = "Не указан статус доступности.")
+    @NotNull
     private Boolean available;
 }
